@@ -1,0 +1,29 @@
+# Eclipse workspace and machine-specific project configuration
+.metadata/
+.project
+.classpath
+.settings/
+/Code/Servers/
+
+# Generated output
+build/
+bin/
+target/
+*.class
+*.war
+*.ear
+
+# Local editor / OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Supply the JDBC driver separately on each machine
+/Code/JAD-CA1/src/main/webapp/WEB-INF/lib/mysql-connector*.jar
+
+# Local secrets; commit credential-free examples separately
+.env
+.env.*
+!.env.example
+config/database-local.properties
+/Code/JAD-CA1/config/database-local.properties
