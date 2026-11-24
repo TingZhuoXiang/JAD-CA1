@@ -6,7 +6,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.ToLongFunction;
 
 /**
  * Event signups. Shared by the Admin roster and Volunteer self-service: both sign up through
@@ -45,6 +50,26 @@ public final class Registrations {
         public String volunteerCode() {
             return "V-" + volunteerId;
         }
+    }
+
+    public record SignupSummary(Signup signup, boolean previouslyWithdrawn) {}
+
+    /** Keeps the latest attempt for each event or volunteer in the input's group order. */
+    public static List<SignupSummary> summarize(List<Signup> attempts, ToLongFunction<Signup> groupKey) {
+        Map<Long, Signup> latest = new LinkedHashMap<>();
+        Set<Long> withdrawals = new HashSet<>();
+        for (Signup attempt : attempts) {
+            long key = groupKey.applyAsLong(attempt);
+            // IDs reflect insertion order even when a demo signup has a future timestamp.
+            latest.merge(key, attempt, (current, candidate) -> current.id() > candidate.id() ? current : candidate);
+            if ("WITHDRAWN_BY_VOLUNTEER".equals(attempt.endReason())) {
+                withdrawals.add(key);
+            }
+        }
+        List<SignupSummary> summaries = new ArrayList<>();
+        latest.forEach((key, signup) -> summaries.add(new SignupSummary(signup,
+                signup.active() && withdrawals.contains(key))));
+        return summaries;
     }
 
     private Registrations() {}
@@ -158,12 +183,26 @@ public final class Registrations {
 
     /** A volunteer's signups, newest event first. */
     public static List<Signup> forVolunteer(long volunteerId) throws SQLException {
-        return list(SELECT + " WHERE r.volunteer_id = ? ORDER BY e.starts_at DESC, r.registered_at DESC", volunteerId);
+        return list(SELECT + " WHERE r.volunteer_id = ? ORDER BY e.starts_at DESC, r.registered_at DESC, r.id DESC",
+                volunteerId);
     }
 
-    private static List<Signup> list(String sql, long id) throws SQLException {
+    public static Signup findForVolunteer(long registrationId, long volunteerId) throws SQLException {
+        List<Signup> matches = list(SELECT + " WHERE r.id = ? AND r.volunteer_id = ?", registrationId, volunteerId);
+        return matches.isEmpty() ? null : matches.get(0);
+    }
+
+    public static Signup latestForEvent(long eventId, long volunteerId) throws SQLException {
+        List<Signup> matches = list(SELECT + " WHERE r.event_id = ? AND r.volunteer_id = ? ORDER BY r.id DESC LIMIT 1",
+                eventId, volunteerId);
+        return matches.isEmpty() ? null : matches.get(0);
+    }
+
+    private static List<Signup> list(String sql, long... ids) throws SQLException {
         try (Connection db = Accounts.connect(); PreparedStatement statement = db.prepareStatement(sql)) {
-            statement.setLong(1, id);
+            for (int i = 0; i < ids.length; i++) {
+                statement.setLong(i + 1, ids[i]);
+            }
             List<Signup> signups = new ArrayList<>();
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Admin management of Volunteer accounts. */
+/** Volunteer account management shared by Admin and self-service pages. */
 public final class Volunteers {
     private static final Pattern VOLUNTEER_ID = Pattern.compile("(?i)v-?(\\d{1,18})");
     // No 0/O, 1/l/I, so a temporary password read aloud or copied by hand stays unambiguous.
@@ -88,7 +88,7 @@ public final class Volunteers {
     }
 
     /**
-     * Updates the fields an Admin may edit. The username, role and Volunteer ID stay fixed.
+     * Updates contact details. The username, role and Volunteer ID stay fixed.
      * Throws SQLException with error code 1062 if the email belongs to another account.
      */
     public static boolean update(long id, String fullName, String contactNumber, String email) throws SQLException {

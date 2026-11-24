@@ -7,7 +7,7 @@ ST0510 J2EE Application Development · Assignment 1 · AY2026/27 S2
 | Team | Aarya (Admin features: events, participant administration, event sign-ups, Admin-created accounts) · Zhuo Xiang (foundation: project setup, authentication, sessions, public registration; participant self-service) |
 | Repository | https://github.com/TingZhuoXiang/JAD-CA1 |
 | Stack | JDK 17+ (built with JDK 25/26), Jakarta EE 10 web profile (Servlet 6.0, JSP 3.1) on Apache Tomcat 10.1 / TomEE 10, MySQL 8.0 via JDBC (Connector/J) |
-| Status | Phase 2 (Admin) complete and tested. Sections marked **[Z]** are for Zhuo Xiang to complete when phase 3 lands. Edit this file directly; it is the single technical document for the submission. |
+| Status | Phase 2 (Admin) and Phase 3 (Volunteer self-service) implemented. |
 
 **Terminology.** The brief's *participant* is the person attending a screening; the code and pages call this
 account role `VOLUNTEER` (shown as "Volunteer", ID format `V-<n>`). *Admin* is the staff role. An *event
@@ -183,7 +183,9 @@ parameter, so they never depend on the MySQL server's time zone.
 | 4.4 | HttpSession for auth; invalidate on logout | `Web.signIn`, `AccessFilter`, `logout.jsp` |
 | 4.5 | Ready to convert a feature to MVC in A2 | Data access already separated into Java classes; JSPs only handle the request and render |
 
-**Participant self-service [Z]:** profile view/edit, browse events, sign up / withdraw / re-join, "My sign-ups".
+**Participant self-service:** `volunteer/profile.jsp` edits the signed-in Volunteer’s name, contact number and email. `volunteer/events.jsp` and `volunteer/event.jsp` provide event search, filters, details and signup. `volunteer/signups.jsp` shows upcoming signups and history, including Admin-added signups and cancellations. `volunteer/withdraw.jsp` confirms withdrawal, and the shared signup procedure permits rejoining before the event starts. `volunteer/deactivate.jsp` confirms account deactivation, cancels upcoming signups in the same transaction and ends the session.
+
+The Volunteer pages take the account ID from the authenticated session. Profile edits and deactivation cannot select another account. The registration lookup and withdrawal update both scope the registration ID to the signed-in Volunteer. The shared withdrawal update also checks that the event is open and has not started.
 These reuse `Registrations.register`, `Registrations.withdrawByVolunteer` and `Registrations.forVolunteer`.
 
 ---
@@ -277,9 +279,11 @@ The script leaves its test rows (named with a run number) in the database.
   compiles JSPs at Java 11); rewritten. The shared header showed `Â·` because included fragments are read as
   ISO-8859-1; replaced with an HTML entity.
 
-### Participant self-service tests [Z]
+### Participant self-service tests
 
-_To be added with phase 3._
+`tests/volunteer-tests.sh` uses the real forms and checks MySQL state. It covers profile validation and ownership, event search and filters, signup eligibility and duplicate prevention, confirmed withdrawal and rejoining, and self-deactivation with signup history retained. It also checks that Volunteer signups reach the Admin roster and that Admin-added or cancelled signups appear correctly in My signups. See the [setup guide](../README.md#end-to-end-tests) for the commands.
+
+Phase 3 verification on TomEE 10.2 and MySQL 8.0.43 passed all 71 Volunteer checks and all 93 Admin regression checks against a disposable seeded schema.
 
 ---
 

@@ -38,6 +38,7 @@
     <% if ("registered".equals(notice)) { %><p role="status">Account created. You can now sign in.</p><% } %>
     <% if ("signin".equals(notice)) { %><p role="status">Sign in to continue. Your previous session may have expired.</p><% } %>
     <% if ("loggedout".equals(notice)) { %><p role="status">You’ve signed out.</p><% } %>
+    <% if ("deactivated".equals(notice)) { %><p role="status">Your account is deactivated and you have been signed out.</p><% } %>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <form method="post" action="login.jsp">
         <input type="hidden" name="csrf" value="<%= Web.token(request.getSession()) %>">

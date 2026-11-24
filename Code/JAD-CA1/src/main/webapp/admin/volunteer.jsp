@@ -5,7 +5,7 @@
     String navCurrent = "volunteers";
     long id = Web.id(request, "id");
     Volunteers.Volunteer volunteer = null;
-    List<Registrations.Signup> signups = List.of();
+    List<Registrations.SignupSummary> signups = List.of();
     Map<String, String> errors = Map.of();
     String error = "";
     String fullName = "", contactNumber = "", email = "";
@@ -46,7 +46,7 @@
                 }
             }
         }
-        signups = Registrations.forVolunteer(id);
+        signups = Registrations.summarize(Registrations.forVolunteer(id), Registrations.Signup::eventId);
     } catch (SQLException e) {
         application.log("Volunteer page failed. SQL state: " + e.getSQLState());
         response.setStatus(503);
@@ -110,12 +110,14 @@
         <div class="table-wrap"><table>
             <thead><tr><th>Event</th><th>When</th><th>Status</th><th>Signed up</th></tr></thead>
             <tbody>
-            <% for (Registrations.Signup signup : signups) { %>
+            <% for (Registrations.SignupSummary entry : signups) {
+                Registrations.Signup signup = entry.signup(); %>
             <tr>
                 <td><a href="event.jsp?id=<%= signup.eventId() %>"><%= Web.html(signup.eventTitle()) %></a>
                     <% if (signup.eventStatus() == Events.Status.CANCELLED) { %><span class="badge off">Event cancelled</span><% } else if (!now.isBefore(signup.startsAt())) { %><span class="badge">Past</span><% } %></td>
                 <td><%= Events.display(signup.startsAt()) %></td>
-                <td><span class="badge <%= signup.active() ? "ok" : "off" %>"><%= signup.statusLabel() %></span>
+                <td><span class="badge <%= signup.active() ? "ok" : "off" %>"><%= Web.html(signup.statusLabel()) %></span>
+                    <% if (entry.previouslyWithdrawn()) { %><span class="badge">Previously withdrawn</span><% } %>
                     <% if (signup.endedAt() != null) { %><br><span class="muted"><%= Events.display(signup.endedAt()) %></span><% } %></td>
                 <td><%= Events.display(signup.registeredAt()) %><br><span class="muted"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
             </tr>
