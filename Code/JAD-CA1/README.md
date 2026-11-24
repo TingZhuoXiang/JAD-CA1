@@ -1,6 +1,6 @@
-# JAD-CA1 setup and Admin handoff
+# JAD-CA1 setup and team handoff
 
-Hi Aarya. Phase 1 provides Volunteer registration, login and logout, and separate protected landing pages for Admin and Volunteer. Your phase is the Admin side, including event CRUD, volunteer management and adding a volunteer to an event.
+Phase 1 provides Volunteer registration, login and logout. Phase 2 adds Admin event management, Volunteer administration and rosters. Phase 3 adds Volunteer profile editing, event browsing and signup, My signups, confirmed withdrawal and account deactivation.
 
 ## Run locally
 
@@ -31,12 +31,23 @@ Hi Aarya. Phase 1 provides Volunteer registration, login and logout, and separat
 ## Where things are
 
 - **Admin pages** (`src/main/webapp/admin/`): dashboard, events (list, create/edit, details and roster, cancel, delete) and volunteers (search, details/edit, deactivate, create account). The access filter allows only Admins here.
-- **Volunteer pages** (`src/main/webapp/volunteer/`): Volunteers only.
+- **Volunteer pages** (`src/main/webapp/volunteer/`): Browse and search events, view event details and sign up, review upcoming signups and history, withdraw before the event starts, edit contact details, and deactivate your account.
 - **`/account/change-password.jsp`**: any signed-in user. Accounts created by an Admin are sent here until they replace their temporary password.
 - **Java** (`src/main/java/sg/edu/sp/jad/`): `Accounts`, `Events`, `Registrations` and `Volunteers` hold the SQL. Pages use `currentUser`, `Accounts.connect()` and `Web.token(...)` in each POST form's hidden `csrf` field.
 - **Signup rules** live in the `sp_register_volunteer` stored procedure. Call `Registrations.register(eventId, volunteerId, actorId)` from any page that signs someone up.
 - **JSP syntax:** this TomEE compiles JSPs at Java 11 level, so JSP scriptlets cannot use switch expressions, `instanceof` patterns, text blocks or records. Plain `.java` classes can.
 
 See [docs/technical-document.md](docs/technical-document.md) for the architecture, database design, requirement mapping, setup and test evidence.
+
+## End-to-end tests
+
+Start the app against a seeded test database. In Git Bash, run these commands from the repository root using a MySQL client option file outside the repository:
+
+```sh
+CNF=/path/to/mysql-client.ini bash Code/JAD-CA1/tests/admin-tests.sh
+CNF=/path/to/mysql-client.ini bash Code/JAD-CA1/tests/volunteer-tests.sh
+```
+
+Both suites create test accounts and events and leave test rows in the database. The Volunteer suite also accepts `JAD_TEST_DB` and `MYSQL_CLIENT` overrides. Its CLI and the running app must target the same schema.
 
 Keep your MySQL credentials in the local Eclipse launch and use your own Git author identity for commits. Run normal Git commands from the clone root.

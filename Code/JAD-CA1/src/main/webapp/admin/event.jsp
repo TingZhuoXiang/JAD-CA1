@@ -8,7 +8,7 @@
     if (find.length() > 100) find = find.substring(0, 100);
     String error = "";
     Events.Event event = null;
-    List<Registrations.Signup> roster = List.of();
+    List<Registrations.SignupSummary> roster = List.of();
     List<Volunteers.Volunteer> matches = List.of();
     try {
         if ("POST".equals(request.getMethod())) {
@@ -26,7 +26,7 @@
                 error = refusal;
             } else if ("remove".equals(action)) {
                 if (Registrations.removeByAdmin(Web.id(request, "registrationId"), id, user.id())) {
-                    Web.flash(request, "Volunteer removed from the roster. Their signup stays in the history.");
+                    Web.flash(request, "Volunteer removed from the roster. Only an admin can add them back.");
                     response.sendRedirect("event.jsp?id=" + id);
                     return;
                 }
@@ -42,7 +42,7 @@
             response.sendError(404, "That event does not exist.");
             return;
         }
-        roster = Registrations.roster(id);
+        roster = Registrations.summarize(Registrations.roster(id), Registrations.Signup::volunteerId);
         if (!find.isEmpty()) {
             matches = Volunteers.search(find, Volunteers.Filter.ACTIVE);
         }
@@ -55,7 +55,8 @@
     String csrf = Web.token(request.getSession(false));
     Set<Long> onRoster = new HashSet<>();
     int activeCount = 0;
-    for (Registrations.Signup signup : roster) {
+    for (Registrations.SignupSummary entry : roster) {
+        Registrations.Signup signup = entry.signup();
         if (signup.active()) { onRoster.add(signup.volunteerId()); activeCount++; }
     }
 %>
@@ -142,13 +143,15 @@
         <div class="table-wrap"><table>
             <thead><tr><th>Volunteer</th><th>Contact</th><th>Status</th><th>Signed up</th><th></th></tr></thead>
             <tbody>
-            <% for (Registrations.Signup signup : roster) { %>
+            <% for (Registrations.SignupSummary entry : roster) {
+                Registrations.Signup signup = entry.signup(); %>
             <tr>
                 <td><a href="volunteer.jsp?id=<%= signup.volunteerId() %>"><%= Web.html(signup.volunteerName()) %></a>
                     <span class="muted"><%= signup.volunteerCode() %></span>
                     <% if (!signup.volunteerActive()) { %><span class="badge off">Deactivated</span><% } %></td>
                 <td><%= Web.html(signup.contactNumber()) %><br><span class="muted"><%= Web.html(signup.email()) %></span></td>
-                <td><span class="badge <%= signup.active() ? "ok" : "off" %>"><%= signup.statusLabel() %></span>
+                <td><span class="badge <%= signup.active() ? "ok" : "off" %>"><%= Web.html(signup.statusLabel()) %></span>
+                    <% if (entry.previouslyWithdrawn()) { %><span class="badge">Previously withdrawn</span><% } %>
                     <% if (signup.endedAt() != null) { %><br><span class="muted"><%= Events.display(signup.endedAt()) %></span><% } %></td>
                 <td><%= Events.display(signup.registeredAt()) %><br><span class="muted"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
                 <td><% if (signup.endable(now)) { %>

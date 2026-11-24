@@ -1,0 +1,17 @@
+<%-- Shared Volunteer header. Included statically using the page's user and navCurrent. --%>
+<header class="topbar">
+    <a class="brand" href="./">Vision Screening &middot; Volunteer</a>
+    <nav aria-label="Volunteer">
+        <a href="./" <%= "home".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Home</a>
+        <a href="events.jsp" <%= "events".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Events</a>
+        <a href="signups.jsp" <%= "signups".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>My signups</a>
+        <a href="profile.jsp" <%= "profile".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>My profile</a>
+    </nav>
+    <form class="account inline" method="post" action="../logout.jsp">
+        <span class="muted"><%= Web.html(user.fullName()) %></span>
+        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+        <button type="submit" class="link">Sign out</button>
+    </form>
+</header>
+<% String flashMessage = Web.takeFlash(request);
+   if (!flashMessage.isEmpty()) { %><p class="notice" role="status"><%= Web.html(flashMessage) %></p><% } %>

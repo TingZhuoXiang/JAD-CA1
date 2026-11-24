@@ -5,7 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -28,6 +30,58 @@ public final class Events {
 
     /** Which events a list shows. */
     public enum Filter { UPCOMING, PAST, CANCELLED, ALL }
+
+    public enum StartOrder { DEFAULT, EARLIEST, LATEST }
+
+    public record StartDateRange(LocalDate from, LocalDate to) {
+        public static StartDateRange parse(String from, String to) {
+            LocalDate first = parseDate(from);
+            LocalDate last = parseDate(to);
+            if (first != null && last != null && last.isBefore(first)) {
+                throw new IllegalArgumentException("Event start date (to) must be on or after the from date.");
+            }
+            return new StartDateRange(first, last);
+        }
+
+        public boolean includes(LocalDate date) {
+            return (from == null || !date.isBefore(from)) && (to == null || !date.isAfter(to));
+        }
+
+        private static LocalDate parseDate(String value) {
+            if (value.isEmpty()) return null;
+            if (value.matches("[1-9][0-9]{3}-[0-9]{2}-[0-9]{2}")) {
+                try {
+                    return LocalDate.parse(value);
+                } catch (DateTimeParseException e) {
+                    throw new IllegalArgumentException("Enter valid event start dates.", e);
+                }
+            }
+            throw new IllegalArgumentException("Enter valid event start dates.");
+        }
+    }
+
+    public record StartTimeRange(LocalTime from, LocalTime to) {
+        public static StartTimeRange parse(String from, String to) {
+            LocalTime first = parseTime(from);
+            LocalTime last = parseTime(to);
+            if (first != null && last != null && last.isBefore(first)) {
+                throw new IllegalArgumentException("Event start time (to) must be at or after the from time.");
+            }
+            return new StartTimeRange(first, last);
+        }
+
+        private static LocalTime parseTime(String value) {
+            if (value.isEmpty()) return null;
+            if (value.matches("[0-9]{2}:[0-9]{2}")) {
+                try {
+                    return LocalTime.parse(value);
+                } catch (DateTimeParseException e) {
+                    throw new IllegalArgumentException("Enter valid event start times.", e);
+                }
+            }
+            throw new IllegalArgumentException("Enter valid event start times.");
+        }
+    }
 
     public record Event(long id, String title, String location, String description,
             LocalDateTime startsAt, LocalDateTime endsAt, Status status, LocalDateTime cancelledAt,
@@ -258,6 +312,12 @@ public final class Events {
 
     /** Searches title and location. Upcoming lists soonest first; the others newest first. */
     public static List<Event> search(String text, Filter filter) throws SQLException {
+        return search(text, filter, new StartDateRange(null, null), new StartTimeRange(null, null),
+                StartOrder.DEFAULT);
+    }
+
+    public static List<Event> search(String text, Filter filter, StartDateRange dates, StartTimeRange times,
+            StartOrder order) throws SQLException {
         StringBuilder sql = new StringBuilder(SELECT).append(" WHERE 1 = 1");
         List<Object> params = new ArrayList<>();
         LocalDateTime now = now();
@@ -273,7 +333,25 @@ public final class Events {
             params.add(pattern);
             params.add(pattern);
         }
-        sql.append(filter == Filter.UPCOMING ? " ORDER BY e.starts_at, e.id" : " ORDER BY e.starts_at DESC, e.id DESC");
+        if (dates.from() != null) {
+            sql.append(" AND e.starts_at >= ?");
+            params.add(dates.from().atStartOfDay());
+        }
+        if (dates.to() != null) {
+            sql.append(" AND e.starts_at <= ?");
+            params.add(dates.to().atTime(23, 59, 59));
+        }
+        if (times.from() != null) {
+            sql.append(" AND TIME(e.starts_at) >= ?");
+            params.add(times.from());
+        }
+        if (times.to() != null) {
+            sql.append(" AND TIME(e.starts_at) <= ?");
+            params.add(times.to().withSecond(59));
+        }
+        boolean earliestFirst = order == StartOrder.EARLIEST
+                || (order == StartOrder.DEFAULT && filter == Filter.UPCOMING);
+        sql.append(earliestFirst ? " ORDER BY e.starts_at, e.id" : " ORDER BY e.starts_at DESC, e.id DESC");
         sql.append(" LIMIT 200");
         try (Connection db = Accounts.connect(); PreparedStatement statement = db.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {

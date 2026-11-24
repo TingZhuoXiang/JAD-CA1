@@ -125,6 +125,15 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This volunteer is already signed up for this event.';
     END IF;
 
+    -- An Admin can restore eligibility by adding the volunteer back as a new signup.
+    IF p_actor_id = p_volunteer_id AND (
+        SELECT end_reason FROM event_registrations
+        WHERE event_id = p_event_id AND volunteer_id = p_volunteer_id
+        ORDER BY id DESC LIMIT 1
+    ) = 'REMOVED_BY_ADMIN' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'An admin removed you from this event. Only an admin can add you back.';
+    END IF;
+
     INSERT INTO event_registrations (event_id, volunteer_id, registered_by, registered_at)
     VALUES (p_event_id, p_volunteer_id, p_actor_id, p_now);
     COMMIT;
