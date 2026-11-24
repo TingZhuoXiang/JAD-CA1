@@ -9,7 +9,9 @@ import jakarta.servlet.http.HttpSession;
 
 public final class Web {
     static final String USER_ID = "jad.userId";
+    public static final String CHANGE_PASSWORD = "/account/change-password.jsp";
     private static final String CSRF = "jad.csrf";
+    private static final String FLASH = "jad.flash";
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private Web() {}
@@ -48,6 +50,31 @@ public final class Web {
             previous.invalidate();
         }
         request.getSession(true).setAttribute(USER_ID, user.id());
+    }
+
+    /** Reads a positive id parameter, or returns -1 if it is missing or malformed. */
+    public static long id(HttpServletRequest request, String name) {
+        try {
+            long value = Long.parseLong(field(request, name));
+            return value > 0 ? value : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /** Stores a one-time message to show after a POST-redirect-GET. */
+    public static void flash(HttpServletRequest request, String message) {
+        request.getSession().setAttribute(FLASH, message);
+    }
+
+    /** Returns and clears the one-time message, or "" if there is none. */
+    public static String takeFlash(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null || !(session.getAttribute(FLASH) instanceof String message)) {
+            return "";
+        }
+        session.removeAttribute(FLASH);
+        return message;
     }
 
     public static String home(Accounts.Role role) {

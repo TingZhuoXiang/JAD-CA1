@@ -24,8 +24,19 @@ Hi Aarya. Phase 1 provides Volunteer registration, login and logout, and separat
 
 6. Open [the local app](http://localhost:8080/JAD-CA1/). Sign in as `demo_admin` to reach the Admin landing page or `demo_volunteer` to reach the Volunteer page. Both use the public local demo password `CA1-sample-demo` if you enabled seed accounts.
 
-## Build the Admin pages
+## Updating your database
 
-Put Admin pages and form handlers under `src/main/webapp/admin/`. That path is already protected. Use the `currentUser` request attribute for the signed-in account, `Accounts.connect()` for JDBC, and `Web.token(request.getSession(false))` in the hidden `csrf` field on POST forms. Use `accounts.id` as the foreign key for volunteer event registrations. Coordinate shared schema changes by adding them to `database/setup.sql`.
+`setup.sql` can be run again at any time. It creates missing tables, adds new columns to a database made by an older version, and replaces the `sp_register_volunteer` procedure, without touching existing data. Run it as a MySQL account that can create tables and procedures (for example root in MySQL Workbench). The app's own login only needs `SELECT, INSERT, UPDATE, DELETE, EXECUTE` on `jad_ca1`.
+
+## Where things are
+
+- **Admin pages** (`src/main/webapp/admin/`): dashboard, events (list, create/edit, details and roster, cancel, delete) and volunteers (search, details/edit, deactivate, create account). The access filter allows only Admins here.
+- **Volunteer pages** (`src/main/webapp/volunteer/`): Volunteers only.
+- **`/account/change-password.jsp`**: any signed-in user. Accounts created by an Admin are sent here until they replace their temporary password.
+- **Java** (`src/main/java/sg/edu/sp/jad/`): `Accounts`, `Events`, `Registrations` and `Volunteers` hold the SQL. Pages use `currentUser`, `Accounts.connect()` and `Web.token(...)` in each POST form's hidden `csrf` field.
+- **Signup rules** live in the `sp_register_volunteer` stored procedure. Call `Registrations.register(eventId, volunteerId, actorId)` from any page that signs someone up.
+- **JSP syntax:** this TomEE compiles JSPs at Java 11 level, so JSP scriptlets cannot use switch expressions, `instanceof` patterns, text blocks or records. Plain `.java` classes can.
+
+See [docs/technical-document.md](docs/technical-document.md) for the architecture, database design, requirement mapping, setup and test evidence.
 
 Keep your MySQL credentials in the local Eclipse launch and use your own Git author identity for commits. Run normal Git commands from the clone root.

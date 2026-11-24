@@ -25,12 +25,15 @@ public final class AccessFilter implements Filter {
 
         String path = http.getServletPath();
         Accounts.Role required = null;
+        boolean protectedPath = true;
         if (path.equals("/admin") || path.startsWith("/admin/")) {
             required = Accounts.Role.ADMIN;
         } else if (path.equals("/volunteer") || path.startsWith("/volunteer/")) {
             required = Accounts.Role.VOLUNTEER;
+        } else if (!path.equals("/account") && !path.startsWith("/account/")) {
+            protectedPath = false; // public pages; /account/ needs any signed-in role
         }
-        if (required != null && !requireUser(http, result, required)) {
+        if (protectedPath && !requireUser(http, result, required)) {
             return;
         }
 
@@ -41,6 +44,7 @@ public final class AccessFilter implements Filter {
         chain.doFilter(http, result);
     }
 
+    /** Checks the session's account is active and, when {@code role} is not null, has that role. */
     private boolean requireUser(HttpServletRequest request, HttpServletResponse response, Accounts.Role role)
             throws IOException {
         HttpSession session = request.getSession(false);
@@ -54,8 +58,14 @@ public final class AccessFilter implements Filter {
                 response.sendRedirect(request.getContextPath() + "/login.jsp?notice=signin");
                 return false;
             }
-            if (user.role() != role) {
+            if (role != null && user.role() != role) {
                 response.sendError(403, "You do not have access to this page.");
+                return false;
+            }
+            // An account created by an Admin starts with a temporary password; nothing else is
+            // reachable until the volunteer replaces it.
+            if (user.mustChangePassword() && !request.getServletPath().equals(Web.CHANGE_PASSWORD)) {
+                response.sendRedirect(request.getContextPath() + Web.CHANGE_PASSWORD);
                 return false;
             }
             request.setAttribute("currentUser", user);

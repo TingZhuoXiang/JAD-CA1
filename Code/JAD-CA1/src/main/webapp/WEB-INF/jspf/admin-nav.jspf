@@ -1,0 +1,17 @@
+<%-- Shared Admin header. Included statically, so it uses the page's "user" and "navCurrent".
+     Keep this file ASCII: Jasper reads included fragments as ISO-8859-1 by default. --%>
+<header class="topbar">
+    <a class="brand" href="./">Vision Screening &middot; Admin</a>
+    <nav aria-label="Admin">
+        <a href="./" <%= "dashboard".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Dashboard</a>
+        <a href="events.jsp" <%= "events".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Events</a>
+        <a href="volunteers.jsp" <%= "volunteers".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Volunteers</a>
+    </nav>
+    <form class="account inline" method="post" action="../logout.jsp">
+        <span class="muted"><%= Web.html(user.fullName()) %></span>
+        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+        <button type="submit" class="link">Sign out</button>
+    </form>
+</header>
+<% String flashMessage = Web.takeFlash(request);
+   if (!flashMessage.isEmpty()) { %><p class="notice" role="status"><%= Web.html(flashMessage) %></p><% } %>

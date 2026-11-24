@@ -9,7 +9,8 @@
             Accounts.User user = Accounts.authenticate(username, Web.field(request, "password"));
             if (user != null) {
                 Web.signIn(request, user);
-                response.sendRedirect(request.getContextPath() + Web.home(user.role()));
+                response.sendRedirect(request.getContextPath()
+                        + (user.mustChangePassword() ? Web.CHANGE_PASSWORD : Web.home(user.role())));
                 return;
             }
             response.setStatus(400);
