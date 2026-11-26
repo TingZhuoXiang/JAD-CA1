@@ -7,7 +7,7 @@ ST0510 J2EE Application Development · Assignment 1 · AY2026/27 S2
 | Team | Aarya (Admin features: events, participant administration, event sign-ups, Admin-created accounts) · Zhuo Xiang (foundation: project setup, authentication, sessions, public registration; participant self-service) |
 | Repository | https://github.com/TingZhuoXiang/JAD-CA1 |
 | Stack | JDK 17+ (built with JDK 25/26), Jakarta EE 10 web profile (Servlet 6.0, JSP 3.1) on Apache Tomcat 10.1 / TomEE 10, MySQL 8.0 via JDBC (Connector/J) |
-| Status | Phase 2 (Admin) and Phase 3 (Volunteer self-service) implemented. |
+| Status | Phase 2 (Admin) and Phase 3 (Volunteer self-service) implemented; shared event grid with paging, sort and date/time filters added; UI upgrade applied to every page (26 Nov 2026). |
 
 **Terminology.** The brief's *participant* is the person attending a screening; the code and pages call this
 account role `VOLUNTEER` (shown as "Volunteer", ID format `V-<n>`). *Admin* is the staff role. An *event
@@ -67,17 +67,24 @@ Text version (for print): `Browser ⇄ HTTP ⇄ [Tomcat: AccessFilter → JSP pa
 ```
 Code/JAD-CA1/
 ├── database/setup.sql            schema, stored procedure, demo seed (re-runnable)
+├── database/event-seed.sql       optional: 10 extra "Demo Grid:" events to show paging
 ├── docs/technical-document.md    this document
-├── tests/admin-tests.sh          end-to-end test script (curl + mysql)
+├── tests/admin-tests.sh          Admin end-to-end tests (curl + mysql)
+├── tests/volunteer-tests.sh      participant self-service end-to-end tests (curl + mysql)
 └── src/main/
     ├── java/sg/edu/sp/jad/       AccessFilter, Accounts, Events, Registrations, Volunteers, Web, Passwords, BootstrapAdmin
     └── webapp/
-        ├── index.jsp, login.jsp, logout.jsp, register.jsp, site.css
+        ├── index.jsp, login.jsp, logout.jsp, register.jsp
+        ├── site.css              the only stylesheet (teal theme, layout, cards, forms, phone layout)
+        ├── list-filters.js       optional live filtering on list pages (external file, allowed by the CSP)
         ├── admin/                Admin pages (Admin role only)
         ├── volunteer/            participant pages (Volunteer role only)
         ├── account/              pages for any signed-in user (change password)
         ├── WEB-INF/web.xml       filter mapping, session timeout (20 min), cookie settings
-        ├── WEB-INF/jspf/         shared JSP fragments (Admin header)
+        ├── WEB-INF/jspf/         shared JSP fragments:
+        │     admin-nav, volunteer-nav, public-header   page headers (name, role, navigation)
+        │     event-search, event-date-filter           reads and validates the event search form
+        │     event-list                                event cards and page links (Admin and Volunteer)
         └── META-INF/context.xml  SameSite cookie setting
 ```
 
@@ -159,7 +166,7 @@ parameter, so they never depend on the MySQL server's time zone.
 | 3.1 | Login and logout | `login.jsp` (`Accounts.authenticate`), `logout.jsp` (POST only, `session.invalidate()`) |
 | 3.1 | Authenticated state in `HttpSession` | `Web.signIn` stores `jad.userId`; a new session ID is issued at sign-in |
 | 3.1 | Block unauthenticated access to restricted pages | `AccessFilter` guards `/admin/*`, `/volunteer/*`, `/account/*`; wrong role → 403 |
-| 3.1 | Visible user context (name and role) | Admin header (`WEB-INF/jspf/admin-nav.jspf`), dashboard, volunteer page |
+| 3.1 | Visible user context (name and role) | Every signed-in page header shows the full name and a role badge: `WEB-INF/jspf/admin-nav.jspf` (Admin) and `volunteer-nav.jspf` (Volunteer, with the `V-<id>`) |
 | 3.1 | Session expiry / invalid session → login with a message | `web.xml` 20-minute timeout; `AccessFilter` invalidates and redirects to `login.jsp?notice=signin` ("Your previous session may have expired") |
 | 3.2 | Register a participant with particulars | `register.jsp` (self-service) and `admin/volunteer-new.jsp` (Admin) — username, full name, contact number, email |
 | 3.2 | Unique participant identifier, stored | `accounts.id` (`AUTO_INCREMENT`), shown as `V-<id>` |
@@ -169,12 +176,12 @@ parameter, so they never depend on the MySQL server's time zone.
 | 3.2 | Deactivate only after confirmation | `admin/volunteer-deactivate.jsp` → `Volunteers.deactivate` (transaction: block login, cancel upcoming sign-ups, keep history) |
 | 3.2 | Success and error messages | Flash messages after every successful POST; form-level and field-level errors; 4xx/503 status codes |
 | 3.3 | Create an event (name, date, status) | `admin/event-form.jsp` → `Events.create`; status shown on every event page |
-| 3.3 | Display events and details | `admin/events.jsp` (search + filter Upcoming / Past / Cancelled / All), `admin/event.jsp` |
+| 3.3 | Display events and details | `admin/events.jsp`: a paged grid of event cards with search, filter Upcoming / Past / Cancelled / All, sort by start, and optional start date and time ranges (shared `event-search.jspf` + `event-list.jspf`, also used by `volunteer/events.jsp`); details on `admin/event.jsp` |
 | 3.3 | Update an event | `admin/event-form.jsp?id=` → `Events.update` (sign-ups unchanged) |
 | 3.3 | Delete or deactivate with confirmation and validation | Cancel (deactivate): `admin/event-cancel.jsp` → `Events.cancel`. Delete: `admin/event-delete.jsp` (type the title to confirm) → `Events.delete` |
 | 3.3 | Associate each registration with an event | `event_registrations`; roster on `admin/event.jsp`; `Registrations.register` → `sp_register_volunteer` |
 | 3.4 | JSP forms, processing, database results | Every page above |
-| 3.4 | Consistent navigation and clear labels | Shared Admin header; labelled fields with hints; back links |
+| 3.4 | Consistent navigation and clear labels | One shared header per role (plus a public header), with the current page highlighted; the same page layout on every page (title, panels, form actions); labelled fields with hints; back links |
 | 3.4 | Preserve valid input, field/form feedback | All forms re-fill submitted values and show per-field errors |
 | 4.1 | JDK 17+, Eclipse, Tomcat; deployable web project | Eclipse Dynamic Web Project, module 6.0, Tomcat 10.1 |
 | 4.2 | JSP directives, scripting elements, implicit objects | See section 4 |
@@ -195,7 +202,7 @@ These reuse `Registrations.register`, `Registrations.withdrawByVolunteer` and `R
 | Technique | Examples |
 | --- | --- |
 | `page` directive | `contentType`, `pageEncoding`, `import`, and `session="false"` on the sign-in, registration and all protected pages, so a session is never created by accident and pages ask for it explicitly with `request.getSession(false)` |
-| `include` directive | `<%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>` — one shared Admin header (kept under `WEB-INF` so it cannot be requested directly) |
+| `include` directive | `<%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>` — one shared header per role; `event-search.jspf` and `event-list.jspf` let the Admin and Volunteer event pages share the same search code and cards (all kept under `WEB-INF` so they cannot be requested directly) |
 | Declaration `<%! %>` | `admin/volunteer-new.jsp` — a constant session key |
 | Scriptlets `<% %>` | Form processing, validation and calls to the helper classes at the top of each page; loops that render tables |
 | Expressions `<%= %>` | Output, always through `Web.html(...)` to escape HTML |
@@ -203,7 +210,14 @@ These reuse `Registrations.register`, `Registrations.withdrawByVolunteer` and `R
 | Implicit objects | `request` (parameters, attributes, method), `response` (redirects, status codes, `sendError`), `application` (`application.log`), `out` (via expressions); the session is reached through `request.getSession(false)` |
 
 Note: this TomEE compiles JSPs at the Java 11 language level, so scriptlets avoid newer syntax (switch
-expressions, pattern `instanceof`, text blocks). Plain `.java` classes are not affected.
+expressions, pattern `instanceof`, text blocks). Plain `.java` classes are not affected. Included `.jspf`
+fragments are read as ISO-8859-1, so they contain only ASCII (symbols are written as HTML entities).
+
+**Page design.** All pages share one stylesheet, `site.css`. The layout follows the lecturer's prototype
+(header, page title, panels, tables, forms) with our own teal theme, role badges in the header, event cards
+with a date tile (9 per page), and a narrow-screen layout at 768 px and below. The styling is done only with CSS classes: there are no
+`style` attributes or inline scripts, so the Content-Security-Policy in section 5 stays strict. The logo is
+an inline SVG.
 
 ---
 
@@ -243,7 +257,8 @@ TomEE 10), MySQL 8.0, MySQL Connector/J.
    `CA1-sample-demo`, seeded only when `@jad_seed_demo` is set).
 
 **Sample data** (from the seed): 1 Admin, 1 participant, 4 events (two upcoming, one cancelled, one past) and
-2 sign-ups (one upcoming, one past).
+2 sign-ups (one upcoming, one past). Optional: run `database/event-seed.sql` afterwards to add 10 events
+titled "Demo Grid: …", enough to show the event grid across two pages.
 
 ---
 
@@ -251,9 +266,22 @@ TomEE 10), MySQL 8.0, MySQL Connector/J.
 
 ### Automated end-to-end tests
 
-`tests/admin-tests.sh` signs in through the real login form, submits every Admin form with its CSRF token,
-and checks both the HTTP results and the database rows. **Result on 24 Nov 2026: 93 passed, 0 failed**
-(TomEE 10.2.0, MySQL 8.0, JDK 26).
+Two scripts sign in through the real login form, submit every form with its CSRF token, and check both the
+HTTP results and the database rows.
+
+**Latest results, 26 Nov 2026**, on the final code (after the shared event grid and the UI upgrade), TomEE
+10.2.0, MySQL 8.0, JDK 26:
+
+| Script | Result |
+| --- | --- |
+| `tests/admin-tests.sh` | **93 passed, 0 failed** |
+| `tests/volunteer-tests.sh` | **152 passed, 0 failed** |
+
+The UI upgrade changed only page markup and CSS (no Java, SQL or form field names), and both scripts were
+re-run on it to confirm nothing broke. Earlier runs: Admin 93/93 on 24 Nov 2026 (Admin phase); Admin 93/93
+and Volunteer 71/71 for Phase 3, before the Volunteer script was extended for the event grid.
+
+`tests/admin-tests.sh` covers:
 
 | Area | What is checked |
 | --- | --- |
@@ -273,17 +301,20 @@ The script leaves its test rows (named with a run number) in the database.
 
 ### Manual checks
 
-- Pages checked in a browser at desktop width and phone width (375 px): navigation wraps, tables scroll
-  inside their own box, forms remain usable.
-- Defect found by testing and fixed: two JSPs used Java 14+ syntax and failed to compile on TomEE (which
-  compiles JSPs at Java 11); rewritten. The shared header showed `Â·` because included fragments are read as
-  ISO-8859-1; replaced with an HTML entity.
+- After the UI upgrade (26 Nov 2026), every Admin, Volunteer and public page was opened in a browser at
+  desktop width and phone width (375 px): headers and tabs fit, tables scroll inside their own box, event
+  cards stack in one column, forms remain usable, and the browser console showed no Content-Security-Policy
+  errors (so no inline style or script slipped in).
+- Defects found by testing and fixed:
+  - Two JSPs used Java 14+ syntax and failed to compile on TomEE (which compiles JSPs at Java 11); rewritten.
+  - The shared header showed `Â·` because included fragments are read as ISO-8859-1; replaced with an HTML
+    entity.
+  - UI upgrade: some draft labels differed from the app's wording that users and tests rely on (e.g.
+    "sign-ups" vs "signups"); the app's wording was kept.
 
 ### Participant self-service tests
 
-`tests/volunteer-tests.sh` uses the real forms and checks MySQL state. It covers profile validation and ownership, event search and filters, signup eligibility and duplicate prevention, confirmed withdrawal and rejoining, and self-deactivation with signup history retained. It also checks that Volunteer signups reach the Admin roster and that Admin-added or cancelled signups appear correctly in My signups. See the [setup guide](../README.md#end-to-end-tests) for the commands.
-
-Phase 3 verification on TomEE 10.2 and MySQL 8.0.43 passed all 71 Volunteer checks and all 93 Admin regression checks against a disposable seeded schema.
+`tests/volunteer-tests.sh` uses the real forms and checks MySQL state. It covers profile validation and ownership, event search, filters, sort, date and time ranges and paging, signup eligibility and duplicate prevention, confirmed withdrawal and rejoining, and self-deactivation with signup history retained. It also checks that Volunteer signups reach the Admin roster and that Admin-added or cancelled signups appear correctly in My signups. See the [setup guide](../README.md#end-to-end-tests) for the commands. Latest result: 152 passed, 0 failed (see above).
 
 ---
 
