@@ -61,3 +61,15 @@ dl.details dd { margin: 0; overflow-wrap: anywhere; }
 .secret { font: 600 1.4rem/1.3 ui-monospace, monospace; letter-spacing: .05em; padding: .75rem 1rem; background: #fff8e1; border: 1px dashed #b38600; border-radius: .35rem; display: inline-block; }
 section { margin-top: 1.75rem; }
 @media (max-width: 40rem) { dl.details { grid-template-columns: 1fr; } dl.details dd { margin-bottom: .5rem; } .topbar .account { margin-left: 0; } }
+
+/* Printing (e.g. "Print roster" on an Admin event page): just the content, no menus, buttons or forms. */
+@media print {
+    body { background: white; font-size: 11pt; }
+    main, main.wide { max-width: none; margin: 0; padding: 0; border: 0; }
+    .topbar, .notice, .actions, form, .no-print { display: none !important; }
+    a { color: inherit; text-decoration: none; }
+    .table-wrap { overflow: visible; }
+    tr { break-inside: avoid; }
+    th { background: none; border-bottom: 2px solid #172b39; }
+    .badge { padding: 0; background: none !important; color: inherit !important; }
+}

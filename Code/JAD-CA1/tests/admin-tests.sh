@@ -147,6 +147,38 @@ check "registration after cancel refused" "$(post A admin/event.jsp -d "id=$EV" 
 check "cancelled event cannot be edited" "$(loc A "$B/admin/event-form.jsp?id=$EV")" "$B/admin/event.jsp?id=$EV"
 check "cancelling twice changes nothing" "$(post A admin/event-cancel.jsp -d "id=$EV")" 302
 
+echo "== Roster CSV, print, audit details, copy event"
+# A name a spreadsheet would run as a formula, to check the CSV neutralises it.
+sql "UPDATE accounts SET full_name='=1+2 $RUN' WHERE id=$NID"
+check "roster CSV downloads" "$(curl -s -D "$W/headers" -o "$W/body" -w '%{http_code}' -b "$W/A" "$B/admin/event-roster-csv.jsp?id=$EV")" 200
+has "CSV content type" "$W/headers" "text/csv"
+has "CSV is a file download" "$W/headers" "attachment; filename=\"roster-E-$EV.csv\""
+has "CSV header row" "$W/body" "Volunteer ID,Full name,Username,Contact number,Email,Status"
+has "CSV lists demo_volunteer" "$W/body" "\"demo_volunteer\""
+has "CSV formula-like name neutralised" "$W/body" "\"'=1+2 $RUN\""
+has "CSV phone number kept as typed" "$W/body" "\"+65 9123 4567\""
+check "volunteer cannot download a roster" "$(get V "admin/event-roster-csv.jsp?id=$EV")" 403
+check "CSV for missing event is 404" "$(get A admin/event-roster-csv.jsp?id=999999999)" 404
+# Move created_at back so the event has visibly changed since it was created (ON UPDATE sets updated_at).
+sql "UPDATE events SET created_at = created_at - INTERVAL 1 HOUR WHERE id=$EV"
+get A "admin/event.jsp?id=$EV" >/dev/null
+has "event page links the CSV" "$W/body" "event-roster-csv.jsp?id=$EV"
+has "event page has a print button" "$W/body" "data-print"
+has "event page shows created" "$W/body" "<dt>Created</dt>"
+has "event page shows last changed" "$W/body" "<dt>Last changed</dt>"
+check "creator and canceller named" "$(grep -o 'by Demo Admin' "$W/body" | wc -l)" 2
+check "copy form opens" "$(get A "admin/event-form.jsp?copy=$EV")" 200
+has "copy form heading" "$W/body" "Copy event"
+has "copy form pre-fills title" "$W/body" "value=\"Test screening $RUN (edited)\""
+has "copy form pre-fills location" "$W/body" "value=\"Test Hall\""
+check "copy form leaves dates blank" "$(grep -c 'type="datetime-local" required value=""' "$W/body")" 2
+check "copy of missing event is 404" "$(get A admin/event-form.jsp?copy=999999999)" 404
+token A "admin/event-form.jsp?copy=$EV"
+URL=$(loc A --data-urlencode "csrf=$(cat $W/A.tok)" -d "copy=$EV" --data-urlencode "title=Copied $RUN" --data-urlencode "location=Test Hall" --data-urlencode "startsAt=$(future 20 09:00)" --data-urlencode "endsAt=$(future 20 12:00)" "$B/admin/event-form.jsp")
+COPY=$(echo "$URL" | idfrom)
+[ -n "$COPY" ] && [ "$COPY" != "$EV" ] && ok "copy saves as a new event $COPY" || bad "copy saves as a new event" "no redirect ($URL)"
+check "copy is open with no signups" "$(sql "SELECT CONCAT(status, '/', (SELECT COUNT(*) FROM event_registrations WHERE event_id=$COPY)) FROM events WHERE id=$COPY")" "OPEN/0"
+
 echo "== Event delete"
 token A admin/event-form.jsp
 URL=$(loc A --data-urlencode "csrf=$(cat $W/A.tok)" --data-urlencode "title=Delete me $RUN" --data-urlencode "location=Test Hall" --data-urlencode "startsAt=$(future 12 09:00)" --data-urlencode "endsAt=$(future 12 12:00)" "$B/admin/event-form.jsp")
