@@ -52,30 +52,34 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <h1>Delete this event permanently?</h1>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <% if (event != null) { %>
-    <dl class="details">
-        <dt>Event</dt><dd><%= Web.html(event.title()) %> <span class="muted">E-<%= event.id() %></span></dd>
-        <dt>When</dt><dd><%= Web.html(event.when()) %></dd>
-        <dt>Signup records</dt><dd><%= records %> (including withdrawn and cancelled)</dd>
-    </dl>
-    <p>Deleting removes the event <strong>and all <%= records %> signup records</strong> from the database.
-        <strong>This cannot be undone.</strong>
-        <% if (event.openForSignup(Events.now())) { %>To stop new signups but keep the history, <a href="event-cancel.jsp?id=<%= event.id() %>">cancel the event</a> instead.<% } %></p>
-    <form method="post" action="event-delete.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <input type="hidden" name="id" value="<%= event.id() %>">
-        <label for="confirmTitle">Type the event title to confirm</label>
-        <input id="confirmTitle" name="confirmTitle" maxlength="120" required autocomplete="off"
-               aria-describedby="confirm-hint">
-        <small id="confirm-hint" class="muted"><%= Web.html(event.title()) %></small>
-        <div class="actions">
-            <button type="submit" class="danger">Delete event</button>
-            <a href="event.jsp?id=<%= event.id() %>">Keep event</a>
-        </div>
-    </form>
-    <% } %>
+    <div class="panel">
+        <h1>Delete this event permanently?</h1>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <% if (event != null) { %>
+        <dl class="kv">
+            <dt>Event</dt><dd><%= Web.html(event.title()) %> <span class="muted">E-<%= event.id() %></span></dd>
+            <dt>When</dt><dd><%= Web.html(event.when()) %></dd>
+            <dt>Signup records</dt><dd><%= records %> (including withdrawn and cancelled)</dd>
+        </dl>
+        <p class="callout danger">Deleting removes the event <strong>and all <%= records %> signup records</strong> from the database.
+            <strong>This cannot be undone.</strong></p>
+        <% if (event.openForSignup(Events.now())) { %><p class="muted">To stop new signups but keep the history, <a href="event-cancel.jsp?id=<%= event.id() %>">cancel the event</a> instead.</p><% } %>
+        <form method="post" action="event-delete.jsp">
+            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+            <input type="hidden" name="id" value="<%= event.id() %>">
+            <div class="field">
+                <label for="confirmTitle">Type the event title to confirm</label>
+                <input id="confirmTitle" name="confirmTitle" maxlength="120" required autocomplete="off"
+                       aria-describedby="confirm-hint">
+                <small id="confirm-hint" class="hint"><%= Web.html(event.title()) %></small>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="danger">Delete event</button>
+                <a href="event.jsp?id=<%= event.id() %>">Keep event</a>
+            </div>
+        </form>
+        <% } %>
+    </div>
 </main>
 </body>
 </html>

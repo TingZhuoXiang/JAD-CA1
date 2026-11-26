@@ -65,8 +65,14 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/volunteer-nav.jspf" %>
-    <h1>My signups</h1>
-    <div class="actions"><a class="button" href="events.jsp">Browse events</a></div>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Volunteer portal</p>
+            <h1>My signups</h1>
+            <p class="lede">Your upcoming events and history, including signups added or ended by an Admin.</p>
+        </div>
+        <div class="actions"><a class="button" href="events.jsp">Browse events</a></div>
+    </div>
     <form class="list-filters" method="get" action="signups.jsp" aria-label="Filter my signups">
         <div class="filter-fields">
             <div>
@@ -104,9 +110,9 @@
            for (boolean isUpcoming : new boolean[] {true, false}) {
                List<Registrations.SignupSummary> signups = isUpcoming ? upcoming : history; %>
     <section>
-        <h2><%= isUpcoming ? "Upcoming" : "History" %></h2>
+        <div class="section-head"><h2><%= isUpcoming ? "Upcoming" : "History" %></h2></div>
         <% if (signups.isEmpty()) { %>
-        <p class="muted"><%= filtered ? "No signups match these filters." : isUpcoming ? "No upcoming signups." : "No signup history yet." %></p>
+        <p class="empty"><%= filtered ? "No signups match these filters." : isUpcoming ? "No upcoming signups." : "No signup history yet." %></p>
         <% } else { %>
         <div class="table-wrap"><table>
             <thead><tr><th>Event</th><th>Starts (Singapore time)</th><th>Status</th><th>Signed up</th><% if (isUpcoming) { %><th>Action</th><% } %></tr></thead>
@@ -118,9 +124,9 @@
                 <td><%= Events.display(signup.startsAt()) %></td>
                 <td><span class="badge <%= isUpcoming ? "ok" : signup.active() ? "" : "off" %>"><%= Web.html(signup.statusLabel()) %></span>
                     <% if (entry.previouslyWithdrawn()) { %><span class="badge">Previously withdrawn</span><% } %>
-                    <% if (signup.endedAt() != null) { %><br><span class="muted"><%= Events.display(signup.endedAt()) %></span><% } %></td>
-                <td><%= Events.display(signup.registeredAt()) %><br><span class="muted"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
-                <% if (isUpcoming) { %><td><a href="withdraw.jsp?id=<%= signup.id() %>">Withdraw</a></td><% } %>
+                    <% if (signup.endedAt() != null) { %><span class="sub"><%= Events.display(signup.endedAt()) %></span><% } %></td>
+                <td><%= Events.display(signup.registeredAt()) %><span class="sub"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
+                <% if (isUpcoming) { %><td><a href="withdraw.jsp?id=<%= signup.id() %>" class="button small danger-outline">Withdraw</a></td><% } %>
             </tr>
             <% } %>
             </tbody>

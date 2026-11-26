@@ -38,7 +38,7 @@
             </div>
         </details>
         <div class="actions">
-            <button class="small" type="submit">Search</button>
+            <button type="submit">Search</button>
             <a href="events.jsp">Reset filters</a>
         </div>
     </form>
@@ -52,14 +52,18 @@
         <ul class="event-grid" role="list">
             <% for (Events.Event event : eventPage.events()) {
                    String state = event.state(now);
-                   String badge = "Cancelled".equals(state) ? "off" : "Upcoming".equals(state) ? "ok" : ""; %>
+                   String badge = "Cancelled".equals(state) ? "off" : "Upcoming".equals(state) ? "ok" : "";
+                   String tile = "Cancelled".equals(state) ? " off" : "Upcoming".equals(state) ? "" : " past"; %>
             <li class="event-card">
+                <div class="card-top">
+                    <span class="date-tile<%= tile %>" aria-hidden="true"><b><%= event.startsAt().getDayOfMonth() %></b><small><%= java.time.format.DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH).format(event.startsAt()) %></small></span>
+                    <span class="badge <%= badge %>"><%= state %></span>
+                </div>
                 <h2><a href="event.jsp?id=<%= event.id() %>"><%= Web.html(event.title()) %></a></h2>
-                <p><%= Web.html(event.when()) %></p>
-                <p><%= Web.html(event.location()) %></p>
-                <p><span class="badge <%= badge %>"><%= state %></span></p>
+                <p class="when"><%= Web.html(event.when()) %></p>
+                <p class="where"><%= Web.html(event.location()) %></p>
                 <% if (user.role() == Accounts.Role.ADMIN) { %>
-                <p><%= event.activeSignups() %> signed up</p>
+                <p class="count"><%= event.activeSignups() %> signed up</p>
                 <% } %>
             </li>
             <% } %>

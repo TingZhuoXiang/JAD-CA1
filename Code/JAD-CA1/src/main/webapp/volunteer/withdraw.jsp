@@ -48,24 +48,26 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/volunteer-nav.jspf" %>
-    <h1>Withdraw from this event?</h1>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <% if (signup != null && error.isEmpty()) { %>
-    <dl class="details">
-        <dt>Event</dt><dd><%= Web.html(signup.eventTitle()) %></dd>
-        <dt>Starts</dt><dd><%= Events.display(signup.startsAt()) %> (Singapore time)</dd>
-    </dl>
-    <p>You can sign up again before the event starts if it is still open.</p>
-    <div class="actions">
-        <form method="post" action="withdraw.jsp">
-            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-            <input type="hidden" name="id" value="<%= signup.id() %>">
-            <% if (fromEvent) { %><input type="hidden" name="from" value="event"><% } %>
-            <button type="submit" class="danger">Confirm withdrawal</button>
-        </form>
-        <a href="<%= backUrl %>">Cancel</a>
+    <div class="panel">
+        <h1>Withdraw from this event?</h1>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <% if (signup != null && error.isEmpty()) { %>
+        <dl class="kv">
+            <dt>Event</dt><dd><%= Web.html(signup.eventTitle()) %></dd>
+            <dt>Starts</dt><dd><%= Events.display(signup.startsAt()) %> (Singapore time)</dd>
+        </dl>
+        <p class="callout warn">You can sign up again before the event starts if it is still open.</p>
+        <div class="form-actions">
+            <form method="post" action="withdraw.jsp">
+                <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+                <input type="hidden" name="id" value="<%= signup.id() %>">
+                <% if (fromEvent) { %><input type="hidden" name="from" value="event"><% } %>
+                <button type="submit" class="danger">Confirm withdrawal</button>
+            </form>
+            <a href="<%= backUrl %>">Cancel</a>
+        </div>
+        <% } else { %><p><a href="<%= backUrl %>"><%= backLabel %></a></p><% } %>
     </div>
-    <% } else { %><p><a href="<%= backUrl %>"><%= backLabel %></a></p><% } %>
 </main>
 </body>
 </html>

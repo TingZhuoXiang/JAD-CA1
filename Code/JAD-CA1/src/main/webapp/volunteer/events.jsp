@@ -17,7 +17,13 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/volunteer-nav.jspf" %>
-    <h1>Events</h1>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Volunteer portal</p>
+            <h1>Events</h1>
+            <p class="lede">Find a screening event and sign up. You can withdraw any time before it starts.</p>
+        </div>
+    </div>
 
     <%@ include file="/WEB-INF/jspf/event-list.jspf" %>
 </main>

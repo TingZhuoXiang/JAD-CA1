@@ -71,35 +71,42 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <p><a href="events.jsp">← Events</a></p>
+    <a class="back" href="events.jsp">← All events</a>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <% if (event != null) {
            boolean open = event.openForSignup(now);
            String state = event.state(now); %>
-    <h1><%= Web.html(event.title()) %></h1>
-    <p><span class="badge <%= "Cancelled".equals(state) ? "off" : open ? "ok" : "" %>"><%= state %></span>
-        <% if (open) { %><span class="muted"> · Signups open until the event starts</span><% } %></p>
-    <dl class="details">
-        <dt>Event ID</dt><dd>E-<%= event.id() %></dd>
-        <dt>When</dt><dd><%= Web.html(event.when()) %></dd>
-        <dt>Location</dt><dd><%= Web.html(event.location()) %></dd>
-        <dt>Description</dt><dd><%= event.description().isEmpty() ? "<span class=\"muted\">None</span>" : Web.html(event.description()) %></dd>
-        <% if (event.status() == Events.Status.CANCELLED) { %>
-        <dt>Cancelled</dt><dd><%= Events.display(event.cancelledAt()) %></dd>
-        <% } %>
-    </dl>
-    <div class="actions">
-        <% if (open) { %>
-        <a class="button secondary" href="event-form.jsp?id=<%= event.id() %>">Edit details</a>
-        <a class="button secondary" href="event-cancel.jsp?id=<%= event.id() %>">Cancel event</a>
-        <% } %>
-        <a href="event-delete.jsp?id=<%= event.id() %>">Delete event…</a>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Event &middot; E-<%= event.id() %></p>
+            <h1><%= Web.html(event.title()) %></h1>
+            <p class="lede"><span class="badge <%= "Cancelled".equals(state) ? "off" : open ? "ok" : "" %>"><%= state %></span>
+                <% if (open) { %>&nbsp;Signups open until the event starts.<% } %></p>
+        </div>
+        <div class="actions">
+            <% if (open) { %>
+            <a class="button secondary" href="event-form.jsp?id=<%= event.id() %>">Edit details</a>
+            <a class="button secondary" href="event-cancel.jsp?id=<%= event.id() %>">Cancel event</a>
+            <% } %>
+            <a href="event-delete.jsp?id=<%= event.id() %>" class="button danger-outline">Delete event…</a>
+        </div>
+    </div>
+    <div class="panel full">
+        <dl class="kv">
+            <dt>Event ID</dt><dd>E-<%= event.id() %></dd>
+            <dt>When</dt><dd><%= Web.html(event.when()) %></dd>
+            <dt>Location</dt><dd><%= Web.html(event.location()) %></dd>
+            <dt>Description</dt><dd><%= event.description().isEmpty() ? "<span class=\"muted\">None</span>" : Web.html(event.description()) %></dd>
+            <% if (event.status() == Events.Status.CANCELLED) { %>
+            <dt>Cancelled</dt><dd><%= Events.display(event.cancelledAt()) %></dd>
+            <% } %>
+        </dl>
     </div>
 
     <section>
-        <h2>Roster <span class="muted">(<%= activeCount %> signed up)</span></h2>
+        <div class="section-head"><h2>Roster <span class="count">(<%= activeCount %> signed up)</span></h2></div>
         <% if (open) { %>
-        <form class="row" method="get" action="event.jsp" role="search">
+        <form class="toolbar two" method="get" action="event.jsp" role="search">
             <input type="hidden" name="id" value="<%= event.id() %>">
             <div>
                 <label for="find">Add a volunteer: search name, username, email or Volunteer ID</label>
@@ -109,10 +116,10 @@
         </form>
         <% if (!find.isEmpty()) { %>
             <% if (matches.isEmpty()) { %>
-            <p class="muted">No active volunteers match “<%= Web.html(find) %>”.</p>
+            <p class="empty">No active volunteers match “<%= Web.html(find) %>”.</p>
             <% } else { %>
             <div class="table-wrap"><table>
-                <thead><tr><th>Volunteer</th><th>Username</th><th>Email</th><th></th></tr></thead>
+                <thead><tr><th>Volunteer</th><th>Username</th><th>Email</th><th>Action</th></tr></thead>
                 <tbody>
                 <% for (Volunteers.Volunteer match : matches) { %>
                 <tr>
@@ -134,33 +141,33 @@
             <% } %>
         <% } %>
         <% } else { %>
-        <p class="muted">This event is <%= state.toLowerCase() %>, so the roster can no longer change.</p>
+        <p class="callout info">This event is <%= state.toLowerCase() %>, so the roster can no longer change.</p>
         <% } %>
 
         <% if (roster.isEmpty()) { %>
-        <p class="muted">No one has signed up yet.</p>
+        <p class="empty">No one has signed up yet.</p>
         <% } else { %>
         <div class="table-wrap"><table>
-            <thead><tr><th>Volunteer</th><th>Contact</th><th>Status</th><th>Signed up</th><th></th></tr></thead>
+            <thead><tr><th>Volunteer</th><th>Contact</th><th>Status</th><th>Signed up</th><th>Action</th></tr></thead>
             <tbody>
             <% for (Registrations.SignupSummary entry : roster) {
                 Registrations.Signup signup = entry.signup(); %>
             <tr>
                 <td><a href="volunteer.jsp?id=<%= signup.volunteerId() %>"><%= Web.html(signup.volunteerName()) %></a>
-                    <span class="muted"><%= signup.volunteerCode() %></span>
+                    <span class="sub"><%= signup.volunteerCode() %></span>
                     <% if (!signup.volunteerActive()) { %><span class="badge off">Deactivated</span><% } %></td>
-                <td><%= Web.html(signup.contactNumber()) %><br><span class="muted"><%= Web.html(signup.email()) %></span></td>
+                <td><%= Web.html(signup.contactNumber()) %><span class="sub"><%= Web.html(signup.email()) %></span></td>
                 <td><span class="badge <%= signup.active() ? "ok" : "off" %>"><%= Web.html(signup.statusLabel()) %></span>
                     <% if (entry.previouslyWithdrawn()) { %><span class="badge">Previously withdrawn</span><% } %>
-                    <% if (signup.endedAt() != null) { %><br><span class="muted"><%= Events.display(signup.endedAt()) %></span><% } %></td>
-                <td><%= Events.display(signup.registeredAt()) %><br><span class="muted"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
+                    <% if (signup.endedAt() != null) { %><span class="sub"><%= Events.display(signup.endedAt()) %></span><% } %></td>
+                <td><%= Events.display(signup.registeredAt()) %><span class="sub"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
                 <td><% if (signup.endable(now)) { %>
                     <form class="inline" method="post" action="event.jsp">
                         <input type="hidden" name="csrf" value="<%= csrf %>">
                         <input type="hidden" name="id" value="<%= event.id() %>">
                         <input type="hidden" name="action" value="remove">
                         <input type="hidden" name="registrationId" value="<%= signup.id() %>">
-                        <button type="submit" class="small secondary">Remove</button>
+                        <button type="submit" class="small danger-outline">Remove</button>
                     </form><% } %></td>
             </tr>
             <% } %>

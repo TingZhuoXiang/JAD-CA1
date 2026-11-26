@@ -68,36 +68,47 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <p><a href="<%= original == null ? "events.jsp" : "event.jsp?id=" + id %>">← Back</a></p>
-    <h1><%= heading %></h1>
-    <p class="muted">Times are Singapore time. Volunteers can sign up until the event starts.</p>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <form method="post" action="event-form.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <% if (original != null) { %><input type="hidden" name="id" value="<%= id %>"><% } %>
-
-        <label for="title">Title</label>
-        <input id="title" name="title" maxlength="120" required value="<%= Web.html(title) %>" aria-describedby="title-error">
-        <small id="title-error" class="error"><%= errors.getOrDefault("title", "") %></small>
-
-        <label for="location">Location</label>
-        <input id="location" name="location" maxlength="200" required value="<%= Web.html(location) %>" aria-describedby="location-error">
-        <small id="location-error" class="error"><%= errors.getOrDefault("location", "") %></small>
-
-        <label for="startsAt">Starts</label>
-        <input id="startsAt" name="startsAt" type="datetime-local" required value="<%= Web.html(startsAt) %>" aria-describedby="start-error">
-        <small id="start-error" class="error"><%= errors.getOrDefault("startsAt", "") %></small>
-
-        <label for="endsAt">Ends</label>
-        <input id="endsAt" name="endsAt" type="datetime-local" required value="<%= Web.html(endsAt) %>" aria-describedby="end-error">
-        <small id="end-error" class="error"><%= errors.getOrDefault("endsAt", "") %></small>
-
-        <label for="description">Description <span class="muted">(optional)</span></label>
-        <textarea id="description" name="description" maxlength="2000" aria-describedby="description-error"><%= Web.html(description) %></textarea>
-        <small id="description-error" class="error"><%= errors.getOrDefault("description", "") %></small>
-
-        <button type="submit"><%= original == null ? "Create event" : "Save changes" %></button>
-    </form>
+    <a class="back" href="<%= original == null ? "events.jsp" : "event.jsp?id=" + id %>">← Back</a>
+    <div class="panel">
+        <h1><%= heading %></h1>
+        <p class="meta">Fields marked <span class="req">*</span> are required. Times are Singapore time. Volunteers can sign up until the event starts.</p>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <form method="post" action="event-form.jsp">
+            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+            <% if (original != null) { %><input type="hidden" name="id" value="<%= id %>"><% } %>
+            <div class="form-grid">
+                <div class="field full">
+                    <label for="title">Title <span class="req">*</span></label>
+                    <input id="title" name="title" maxlength="120" required value="<%= Web.html(title) %>" aria-describedby="title-error">
+                    <small id="title-error" class="error"><%= errors.getOrDefault("title", "") %></small>
+                </div>
+                <div class="field full">
+                    <label for="location">Location <span class="req">*</span></label>
+                    <input id="location" name="location" maxlength="200" required value="<%= Web.html(location) %>" aria-describedby="location-error">
+                    <small id="location-error" class="error"><%= errors.getOrDefault("location", "") %></small>
+                </div>
+                <div class="field">
+                    <label for="startsAt">Starts <span class="req">*</span></label>
+                    <input id="startsAt" name="startsAt" type="datetime-local" required value="<%= Web.html(startsAt) %>" aria-describedby="start-error">
+                    <small id="start-error" class="error"><%= errors.getOrDefault("startsAt", "") %></small>
+                </div>
+                <div class="field">
+                    <label for="endsAt">Ends <span class="req">*</span></label>
+                    <input id="endsAt" name="endsAt" type="datetime-local" required value="<%= Web.html(endsAt) %>" aria-describedby="end-error">
+                    <small id="end-error" class="error"><%= errors.getOrDefault("endsAt", "") %></small>
+                </div>
+                <div class="field full">
+                    <label for="description">Description <span class="muted">(optional)</span></label>
+                    <textarea id="description" name="description" maxlength="2000" aria-describedby="description-error"><%= Web.html(description) %></textarea>
+                    <small id="description-error" class="error"><%= errors.getOrDefault("description", "") %></small>
+                </div>
+            </div>
+            <div class="form-actions">
+                <a href="<%= original == null ? "events.jsp" : "event.jsp?id=" + id %>">Cancel</a>
+                <button type="submit"><%= original == null ? "Create event" : "Save changes" %></button>
+            </div>
+        </form>
+    </div>
 </main>
 </body>
 </html>

@@ -26,40 +26,45 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <h1>Admin dashboard</h1>
-    <p>Signed in as <strong><%= Web.html(user.fullName()) %></strong> · Admin</p>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Admin workspace</p>
+            <h1>Admin dashboard</h1>
+            <p class="lede">Welcome back, <%= Web.html(user.fullName()) %>. Here is what is coming up.</p>
+        </div>
+        <div class="actions">
+            <a class="button secondary" href="volunteer-new.jsp">Create volunteer account</a>
+            <a class="button" href="event-form.jsp">Create event</a>
+        </div>
+    </div>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <% if (counts != null) { %>
     <div class="stats">
-        <a href="events.jsp"><strong><%= counts.get("upcoming") %></strong>Upcoming events</a>
-        <a href="volunteers.jsp"><strong><%= counts.get("volunteers") %></strong>Active volunteers</a>
-        <a href="events.jsp"><strong><%= counts.get("signups") %></strong>Signups for upcoming events</a>
+        <a class="stat" href="events.jsp"><span class="num"><%= counts.get("upcoming") %></span><span class="label">Upcoming events</span></a>
+        <a class="stat" href="volunteers.jsp"><span class="num"><%= counts.get("volunteers") %></span><span class="label">Active volunteers</span></a>
+        <a class="stat" href="events.jsp"><span class="num"><%= counts.get("signups") %></span><span class="label">Signups for upcoming events</span></a>
     </div>
     <% } %>
-    <div class="actions">
-        <a class="button" href="event-form.jsp">Create event</a>
-        <a class="button secondary" href="volunteer-new.jsp">Create volunteer account</a>
-    </div>
 
     <section>
-        <h2>Next events</h2>
+        <div class="section-head"><h2>Next events</h2><% if (!upcoming.isEmpty()) { %><a href="events.jsp">All events &rarr;</a><% } %></div>
         <% if (upcoming.isEmpty() && error.isEmpty()) { %>
-        <p class="muted">No upcoming events. <a href="event-form.jsp">Create one</a>.</p>
+        <p class="empty">No upcoming events. <a href="event-form.jsp">Create one</a>.</p>
         <% } else if (!upcoming.isEmpty()) { %>
         <div class="table-wrap"><table>
             <thead><tr><th>Event</th><th>When</th><th>Location</th><th>Signed up</th></tr></thead>
             <tbody>
             <% for (Events.Event event : upcoming.subList(0, Math.min(5, upcoming.size()))) { %>
             <tr>
-                <td><a href="event.jsp?id=<%= event.id() %>"><%= Web.html(event.title()) %></a></td>
+                <td><div class="event-cell"><span class="date-tile" aria-hidden="true"><b><%= event.startsAt().getDayOfMonth() %></b><small><%= java.time.format.DateTimeFormatter.ofPattern("MMM", java.util.Locale.ENGLISH).format(event.startsAt()) %></small></span>
+                    <a href="event.jsp?id=<%= event.id() %>"><%= Web.html(event.title()) %></a></div></td>
                 <td><%= Web.html(event.when()) %></td>
                 <td><%= Web.html(event.location()) %></td>
-                <td><%= event.activeSignups() %></td>
+                <td class="num"><%= event.activeSignups() %></td>
             </tr>
             <% } %>
             </tbody>
         </table></div>
-        <p><a href="events.jsp">All events</a></p>
         <% } %>
     </section>
 </main>

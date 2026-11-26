@@ -65,47 +65,61 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <p><a href="volunteers.jsp">← Volunteers</a></p>
+    <a class="back" href="volunteers.jsp">← All volunteers</a>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <% if (volunteer != null) { %>
-    <h1><%= Web.html(volunteer.fullName()) %></h1>
-    <p><% if (!volunteer.active()) { %><span class="badge off">Deactivated <%= Events.display(volunteer.deactivatedAt()) %></span><% } else if (volunteer.mustChangePassword()) { %><span class="badge warn">Awaiting first sign-in</span><% } else { %><span class="badge ok">Active</span><% } %></p>
-    <dl class="details">
-        <dt>Volunteer ID</dt><dd><%= volunteer.volunteerId() %></dd>
-        <dt>Username</dt><dd><%= Web.html(volunteer.username()) %></dd>
-        <dt>Role</dt><dd>Volunteer</dd>
-        <dt>Account created</dt><dd><%= Events.display(volunteer.createdAt()) %></dd>
-    </dl>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Participant &middot; <%= volunteer.volunteerId() %></p>
+            <h1><%= Web.html(volunteer.fullName()) %></h1>
+            <p class="lede"><% if (!volunteer.active()) { %><span class="badge off">Deactivated <%= Events.display(volunteer.deactivatedAt()) %></span><% } else if (volunteer.mustChangePassword()) { %><span class="badge warn">Awaiting first sign-in</span><% } else { %><span class="badge ok">Active</span><% } %></p>
+        </div>
+    </div>
+    <div class="grid-2">
+        <div class="panel">
+            <h2>Account</h2>
+            <dl class="kv">
+                <dt>Volunteer ID</dt><dd><%= volunteer.volunteerId() %></dd>
+                <dt>Username</dt><dd><%= Web.html(volunteer.username()) %></dd>
+                <dt>Role</dt><dd>Volunteer</dd>
+                <dt>Account created</dt><dd><%= Events.display(volunteer.createdAt()) %></dd>
+                <% if (!volunteer.active()) { %>
+                <dt>Contact number</dt><dd><%= Web.html(volunteer.contactNumber()) %></dd>
+                <dt>Email</dt><dd><%= Web.html(volunteer.email()) %></dd>
+                <% } %>
+            </dl>
+        </div>
+        <% if (volunteer.active()) { %>
+        <div class="panel">
+            <h2>Contact details</h2>
+            <form method="post" action="volunteer.jsp">
+                <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+                <input type="hidden" name="id" value="<%= volunteer.id() %>">
+                <div class="field">
+                    <label for="fullName">Full name <span class="req">*</span></label>
+                    <input id="fullName" name="fullName" maxlength="100" required value="<%= Web.html(fullName) %>" aria-describedby="name-error">
+                    <small id="name-error" class="error"><%= errors.getOrDefault("fullName", "") %></small>
+                </div>
+                <div class="field">
+                    <label for="contactNumber">Contact number <span class="req">*</span></label>
+                    <input id="contactNumber" name="contactNumber" type="tel" maxlength="20" required value="<%= Web.html(contactNumber) %>" aria-describedby="phone-error">
+                    <small id="phone-error" class="error"><%= errors.getOrDefault("contactNumber", "") %></small>
+                </div>
+                <div class="field">
+                    <label for="email">Email <span class="req">*</span></label>
+                    <input id="email" name="email" type="email" maxlength="254" required value="<%= Web.html(email) %>" aria-describedby="email-error">
+                    <small id="email-error" class="error"><%= errors.getOrDefault("email", "") %></small>
+                </div>
+                <div class="form-actions"><button type="submit">Save details</button></div>
+            </form>
+        </div>
+        <% } %>
+    </div>
 
-    <% if (volunteer.active()) { %>
     <section>
-        <h2>Contact details</h2>
-        <form method="post" action="volunteer.jsp">
-            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-            <input type="hidden" name="id" value="<%= volunteer.id() %>">
-            <label for="fullName">Full name</label>
-            <input id="fullName" name="fullName" maxlength="100" required value="<%= Web.html(fullName) %>" aria-describedby="name-error">
-            <small id="name-error" class="error"><%= errors.getOrDefault("fullName", "") %></small>
-            <label for="contactNumber">Contact number</label>
-            <input id="contactNumber" name="contactNumber" type="tel" maxlength="20" required value="<%= Web.html(contactNumber) %>" aria-describedby="phone-error">
-            <small id="phone-error" class="error"><%= errors.getOrDefault("contactNumber", "") %></small>
-            <label for="email">Email</label>
-            <input id="email" name="email" type="email" maxlength="254" required value="<%= Web.html(email) %>" aria-describedby="email-error">
-            <small id="email-error" class="error"><%= errors.getOrDefault("email", "") %></small>
-            <button type="submit">Save details</button>
-        </form>
-    </section>
-    <% } else { %>
-    <dl class="details">
-        <dt>Contact number</dt><dd><%= Web.html(volunteer.contactNumber()) %></dd>
-        <dt>Email</dt><dd><%= Web.html(volunteer.email()) %></dd>
-    </dl>
-    <% } %>
-
-    <section>
-        <h2>Event signups</h2>
+        <div class="section-head"><h2>Event signups</h2></div>
         <% if (signups.isEmpty()) { %>
-        <p class="muted">No signups yet.</p>
+        <p class="empty">No signups yet.</p>
         <% } else { %>
         <div class="table-wrap"><table>
             <thead><tr><th>Event</th><th>When</th><th>Status</th><th>Signed up</th></tr></thead>
@@ -118,8 +132,8 @@
                 <td><%= Events.display(signup.startsAt()) %></td>
                 <td><span class="badge <%= signup.active() ? "ok" : "off" %>"><%= Web.html(signup.statusLabel()) %></span>
                     <% if (entry.previouslyWithdrawn()) { %><span class="badge">Previously withdrawn</span><% } %>
-                    <% if (signup.endedAt() != null) { %><br><span class="muted"><%= Events.display(signup.endedAt()) %></span><% } %></td>
-                <td><%= Events.display(signup.registeredAt()) %><br><span class="muted"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
+                    <% if (signup.endedAt() != null) { %><span class="sub"><%= Events.display(signup.endedAt()) %></span><% } %></td>
+                <td><%= Events.display(signup.registeredAt()) %><span class="sub"><%= signup.selfRegistered() ? "Self signup" : "Added by Admin" %></span></td>
             </tr>
             <% } %>
             </tbody>
@@ -128,10 +142,10 @@
     </section>
 
     <% if (volunteer.active()) { %>
-    <section>
+    <section class="panel full danger-zone">
         <h2>Deactivate account</h2>
         <p>Blocks sign-in and cancels this volunteer’s <%= volunteer.upcomingSignups() %> upcoming signup<%= volunteer.upcomingSignups() == 1 ? "" : "s" %>. Their history is kept.</p>
-        <a class="button secondary" href="volunteer-deactivate.jsp?id=<%= volunteer.id() %>">Deactivate…</a>
+        <div class="actions"><a class="button danger-outline" href="volunteer-deactivate.jsp?id=<%= volunteer.id() %>">Deactivate…</a></div>
     </section>
     <% } %>
     <% } %>

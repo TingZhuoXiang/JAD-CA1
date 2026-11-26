@@ -1,0 +1,14 @@
+<%-- Header for the signed-out pages at the web root (index, login, register). Uses the page's
+     navCurrent ("overview", "signin" or "register"). Keep this file ASCII. --%>
+<header class="app-header">
+    <div class="strip"><span>Community vision screening</span><span>All times are Singapore time (SGT)</span></div>
+    <div class="bar">
+        <a class="brand" href="./"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" focusable="false"><path d="M12 5C6.6 5 2.9 9.2 1.6 12c1.3 2.8 5 7 10.4 7s9.1-4.2 10.4-7C21.1 9.2 17.4 5 12 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.1" fill="currentColor"/></svg></span><span><strong>Vision Screening</strong><small>Station Management System</small></span></a>
+        <div class="account"><span class="who"><strong>Guest</strong><small>Not signed in</small></span></div>
+    </div>
+    <nav class="tabs" aria-label="Site">
+        <a href="./" <%= "overview".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Overview</a>
+        <a href="login.jsp" <%= "signin".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Sign in</a>
+        <a href="register.jsp" <%= "register".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Create account</a>
+    </nav>
+</header>

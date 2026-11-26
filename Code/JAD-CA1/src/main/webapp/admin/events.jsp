@@ -17,8 +17,14 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <h1>Events</h1>
-    <div class="actions"><a class="button" href="event-form.jsp">Create event</a></div>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Admin workspace</p>
+            <h1>Events</h1>
+            <p class="lede">Create screening events and manage their details and rosters.</p>
+        </div>
+        <div class="actions"><a class="button" href="event-form.jsp">Create event</a></div>
+    </div>
 
     <%@ include file="/WEB-INF/jspf/event-list.jspf" %>
 </main>

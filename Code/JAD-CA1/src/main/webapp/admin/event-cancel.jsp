@@ -46,25 +46,27 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <h1>Cancel this event?</h1>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <% if (event != null) { %>
-    <dl class="details">
-        <dt>Event</dt><dd><%= Web.html(event.title()) %> <span class="muted">E-<%= event.id() %></span></dd>
-        <dt>When</dt><dd><%= Web.html(event.when()) %></dd>
-        <dt>Signed up</dt><dd><%= event.activeSignups() %> volunteer<%= event.activeSignups() == 1 ? "" : "s" %></dd>
-    </dl>
-    <p>Cancelling closes the event to new signups and cancels all <%= event.activeSignups() %> active signups.
-        The event and its signup history are kept. <strong>This cannot be undone.</strong></p>
-    <div class="actions">
-        <form method="post" action="event-cancel.jsp">
-            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-            <input type="hidden" name="id" value="<%= event.id() %>">
-            <button type="submit" class="danger">Cancel event</button>
-        </form>
-        <a href="event.jsp?id=<%= event.id() %>">Keep event</a>
+    <div class="panel">
+        <h1>Cancel this event?</h1>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <% if (event != null) { %>
+        <dl class="kv">
+            <dt>Event</dt><dd><%= Web.html(event.title()) %> <span class="muted">E-<%= event.id() %></span></dd>
+            <dt>When</dt><dd><%= Web.html(event.when()) %></dd>
+            <dt>Signed up</dt><dd><%= event.activeSignups() %> volunteer<%= event.activeSignups() == 1 ? "" : "s" %></dd>
+        </dl>
+        <p class="callout danger">Cancelling closes the event to new signups and cancels all <%= event.activeSignups() %> active signups.
+            The event and its signup history are kept. <strong>This cannot be undone.</strong></p>
+        <div class="form-actions">
+            <form method="post" action="event-cancel.jsp">
+                <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+                <input type="hidden" name="id" value="<%= event.id() %>">
+                <button type="submit" class="danger">Cancel event</button>
+            </form>
+            <a href="event.jsp?id=<%= event.id() %>">Keep event</a>
+        </div>
+        <% } %>
     </div>
-    <% } %>
 </main>
 </body>
 </html>

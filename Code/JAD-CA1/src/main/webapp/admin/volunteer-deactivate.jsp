@@ -42,25 +42,27 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <h1>Deactivate this volunteer?</h1>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <% if (volunteer != null) { %>
-    <dl class="details">
-        <dt>Volunteer</dt><dd><%= Web.html(volunteer.fullName()) %> <span class="muted"><%= volunteer.volunteerId() %></span></dd>
-        <dt>Username</dt><dd><%= Web.html(volunteer.username()) %></dd>
-        <dt>Upcoming signups</dt><dd><%= volunteer.upcomingSignups() %></dd>
-    </dl>
-    <p>They will be signed out and unable to sign in. Their <%= volunteer.upcomingSignups() %> upcoming signups will be
-        cancelled. Past signups and their details are kept. <strong>Reactivation is not available.</strong></p>
-    <div class="actions">
-        <form method="post" action="volunteer-deactivate.jsp">
-            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-            <input type="hidden" name="id" value="<%= volunteer.id() %>">
-            <button type="submit" class="danger">Deactivate account</button>
-        </form>
-        <a href="volunteer.jsp?id=<%= volunteer.id() %>">Keep active</a>
+    <div class="panel">
+        <h1>Deactivate this volunteer?</h1>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <% if (volunteer != null) { %>
+        <dl class="kv">
+            <dt>Volunteer</dt><dd><%= Web.html(volunteer.fullName()) %> <span class="muted"><%= volunteer.volunteerId() %></span></dd>
+            <dt>Username</dt><dd><%= Web.html(volunteer.username()) %></dd>
+            <dt>Upcoming signups</dt><dd><%= volunteer.upcomingSignups() %></dd>
+        </dl>
+        <p class="callout danger">They will be signed out and unable to sign in. Their <%= volunteer.upcomingSignups() %> upcoming signups will be
+            cancelled. Past signups and their details are kept. <strong>Reactivation is not available.</strong></p>
+        <div class="form-actions">
+            <form method="post" action="volunteer-deactivate.jsp">
+                <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+                <input type="hidden" name="id" value="<%= volunteer.id() %>">
+                <button type="submit" class="danger">Deactivate account</button>
+            </form>
+            <a href="volunteer.jsp?id=<%= volunteer.id() %>">Keep active</a>
+        </div>
+        <% } %>
     </div>
-    <% } %>
 </main>
 </body>
 </html>

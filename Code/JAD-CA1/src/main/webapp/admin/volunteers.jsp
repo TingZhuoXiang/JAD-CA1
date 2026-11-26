@@ -30,10 +30,16 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <h1>Volunteers</h1>
-    <div class="actions"><a class="button" href="volunteer-new.jsp">Create volunteer account</a></div>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Admin workspace</p>
+            <h1>Volunteers</h1>
+            <p class="lede">Manage participant accounts and see their event signups.</p>
+        </div>
+        <div class="actions"><a class="button" href="volunteer-new.jsp">Create volunteer account</a></div>
+    </div>
 
-    <form class="row" method="get" action="volunteers.jsp" role="search">
+    <form class="toolbar" method="get" action="volunteers.jsp" role="search">
         <div>
             <label for="q">Search name, username, email, phone or Volunteer ID</label>
             <input id="q" name="q" maxlength="100" value="<%= Web.html(q) %>" placeholder="e.g. Tan or V-12">
@@ -52,7 +58,7 @@
 
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <% if (volunteers.isEmpty() && error.isEmpty()) { %>
-    <p class="muted">No volunteers match.</p>
+    <p class="empty">No volunteers match.</p>
     <% } else if (!volunteers.isEmpty()) { %>
     <div class="table-wrap"><table>
         <thead><tr><th>Volunteer ID</th><th>Name</th><th>Username</th><th>Contact</th><th>Status</th><th>Upcoming signups</th></tr></thead>
@@ -62,14 +68,14 @@
             <td><a href="volunteer.jsp?id=<%= volunteer.id() %>"><%= volunteer.volunteerId() %></a></td>
             <td><a href="volunteer.jsp?id=<%= volunteer.id() %>"><%= Web.html(volunteer.fullName()) %></a></td>
             <td><%= Web.html(volunteer.username()) %></td>
-            <td><%= Web.html(volunteer.contactNumber()) %><br><span class="muted"><%= Web.html(volunteer.email()) %></span></td>
+            <td><%= Web.html(volunteer.contactNumber()) %><span class="sub"><%= Web.html(volunteer.email()) %></span></td>
             <td><% if (!volunteer.active()) { %><span class="badge off">Deactivated</span><% } else if (volunteer.mustChangePassword()) { %><span class="badge warn">Awaiting first sign-in</span><% } else { %><span class="badge ok">Active</span><% } %></td>
-            <td><%= volunteer.upcomingSignups() %></td>
+            <td class="num"><%= volunteer.upcomingSignups() %></td>
         </tr>
         <% } %>
         </tbody>
     </table></div>
-    <p class="muted"><%= volunteers.size() %> volunteer<%= volunteers.size() == 1 ? "" : "s" %><%= volunteers.size() == 200 ? " (showing the first 200; refine the search)" : "" %></p>
+    <p class="table-foot"><%= volunteers.size() %> volunteer<%= volunteers.size() == 1 ? "" : "s" %><%= volunteers.size() == 200 ? " (showing the first 200; refine the search)" : "" %></p>
     <% } %>
 </main>
 </body>
