@@ -55,6 +55,9 @@
     <% if (!event.description().isBlank()) { %><p><%= Web.html(event.description()).replace("\n", "<br>") %></p><% } %>
     <% if (latestSignup != null && latestSignup.active()) { %>
     <p>You are signed up. <a href="signups.jsp">View my signups</a>.</p>
+    <% if (latestSignup.endable(now)) { %>
+    <p><a class="button secondary" href="withdraw.jsp?id=<%= latestSignup.id() %>&amp;from=event">Withdraw</a></p>
+    <% } %>
     <% } else if (latestSignup != null && "REMOVED_BY_ADMIN".equals(latestSignup.endReason())) { %>
     <% if (error.isEmpty()) { %><p>An admin removed you from this event. Only an admin can add you back.</p><% } %>
     <% } else if (event.openForSignup(now) && response.getStatus() != 503) { %>

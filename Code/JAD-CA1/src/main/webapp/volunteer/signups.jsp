@@ -60,7 +60,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>My signups | Volunteer | Vision Screening</title>
     <link rel="stylesheet" href="../site.css">
-    <script src="list-filters.js" defer></script>
+    <script src="../list-filters.js" defer></script>
 </head>
 <body>
 <main class="wide">

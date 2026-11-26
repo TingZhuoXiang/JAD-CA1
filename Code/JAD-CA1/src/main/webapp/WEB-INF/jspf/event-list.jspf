@@ -1,0 +1,80 @@
+    <form class="list-filters" method="get" action="events.jsp" role="search">
+        <div class="filter-fields">
+            <div>
+                <label for="q">Search title or location</label>
+                <input id="q" name="q" maxlength="100" value="<%= Web.html(q) %>">
+            </div>
+            <div>
+                <label for="show">Show</label>
+                <select id="show" name="show">
+                    <% for (Events.Filter option : Events.Filter.values()) { %>
+                    <option value="<%= option.name().toLowerCase(Locale.ROOT) %>" <%= option == filter ? "selected" : "" %>>
+                        <%= option.name().charAt(0) + option.name().substring(1).toLowerCase(Locale.ROOT) %></option>
+                    <% } %>
+                </select>
+            </div>
+            <div>
+                <label for="sort">Sort by</label>
+                <select id="sort" name="sort">
+                    <option value="">Default order</option>
+                    <option value="earliest" <%= order == Events.StartOrder.EARLIEST ? "selected" : "" %>>Event start (earliest first)</option>
+                    <option value="latest" <%= order == Events.StartOrder.LATEST ? "selected" : "" %>>Event start (latest first)</option>
+                </select>
+            </div>
+        </div>
+        <details <%= advanced ? "open" : "" %>>
+            <summary>Advanced filters</summary>
+            <p class="muted">Filter by event start in Singapore time. Leave either end of a range blank for an open-ended range.</p>
+            <div class="filter-fields">
+                <%@ include file="/WEB-INF/jspf/event-date-filter.jspf" %>
+                <div>
+                    <label for="fromTime">Start time (from)</label>
+                    <input id="fromTime" name="fromTime" type="time" value="<%= Web.html(fromTime) %>">
+                </div>
+                <div>
+                    <label for="toTime">Start time (to)</label>
+                    <input id="toTime" name="toTime" type="time" value="<%= Web.html(toTime) %>">
+                </div>
+            </div>
+        </details>
+        <div class="actions">
+            <button class="small" type="submit">Search</button>
+            <a href="events.jsp">Reset filters</a>
+        </div>
+    </form>
+
+    <div id="filter-results" aria-live="polite">
+        <% if (!error.isEmpty()) { %>
+        <p class="error" role="alert"><%= Web.html(error) %></p>
+        <% } else if (eventPage.events().isEmpty()) { %>
+        <p class="muted">No events match. <% if (!q.isEmpty() || filter != Events.Filter.ALL || advanced) { %><a href="events.jsp?show=all">Show all events</a>.<% } %></p>
+        <% } else { %>
+        <ul class="event-grid" role="list">
+            <% for (Events.Event event : eventPage.events()) {
+                   String state = event.state(now);
+                   String badge = "Cancelled".equals(state) ? "off" : "Upcoming".equals(state) ? "ok" : ""; %>
+            <li class="event-card">
+                <h2><a href="event.jsp?id=<%= event.id() %>"><%= Web.html(event.title()) %></a></h2>
+                <p><%= Web.html(event.when()) %></p>
+                <p><%= Web.html(event.location()) %></p>
+                <p><span class="badge <%= badge %>"><%= state %></span></p>
+                <% if (user.role() == Accounts.Role.ADMIN) { %>
+                <p><%= event.activeSignups() %> signed up</p>
+                <% } %>
+            </li>
+            <% } %>
+        </ul>
+        <p class="muted"><%= eventPage.total() %> event<%= eventPage.total() == 1 ? "" : "s" %></p>
+        <% if (eventPage.pageCount() > 1) { %>
+        <nav class="event-pagination" aria-label="Event pages">
+            <% if (eventPage.number() > 1) { %>
+            <a href="<%= Web.html(pageUrl + (eventPage.number() - 1)) %>" rel="prev">Previous</a>
+            <% } %>
+            <span>Page <%= eventPage.number() %> of <%= eventPage.pageCount() %></span>
+            <% if (eventPage.number() < eventPage.pageCount()) { %>
+            <a href="<%= Web.html(pageUrl + (eventPage.number() + 1)) %>" rel="next">Next</a>
+            <% } %>
+        </nav>
+        <% } %>
+        <% } %>
+    </div>

@@ -54,7 +54,7 @@ create_event() {
 }
 
 event_order() {
-    sed -n 's/.*<td><a href="event.jsp?id=\([0-9]*\)">.*/\1/p' "$W/body" | paste -sd, -
+    sed -n 's/.*\(<td>\|<h2>\)<a href="event.jsp?id=\([0-9]*\)">.*/\2/p' "$W/body" | paste -sd, -
 }
 
 echo "== Test setup and access"
@@ -146,13 +146,25 @@ REG=$(sql "SELECT id FROM event_registrations WHERE event_id=$EV AND volunteer_i
 DEMO_PAST=$(sql "SELECT r.id FROM event_registrations r JOIN accounts a ON a.id=r.volunteer_id WHERE r.event_id=$PAST AND a.username='demo_volunteer'")
 if [[ ! "$REG $DEMO_PAST" =~ ^[0-9]+\ [0-9]+$ ]]; then echo "Missing signup fixtures." >&2; exit 1; fi
 token other volunteer/signups.jsp
-check "other Volunteer cannot open confirmation" "$(request other "volunteer/withdraw.jsp?id=$REG")" 404
+check "other Volunteer cannot open event withdrawal confirmation" "$(request other "volunteer/withdraw.jsp?id=$REG&from=event")" 404
 check "other Volunteer cannot withdraw this signup" "$(post other volunteer/withdraw.jsp -d id="$REG")" 404
 check "withdrawal confirmation opens" "$(request vol "volunteer/withdraw.jsp?id=$REG")" 200
 has "confirmation identifies the event" "Self signup $RUN" 1
+has "My signups confirmation cancels back to My signups" '<a href="signups.jsp">Cancel</a>' 1
+check "signed-up volunteer can open event details" "$(request vol "volunteer/event.jsp?id=$EV")" 200
+has "event details link to the active signup confirmation" "withdraw.jsp?id=$REG&amp;from=event" 1
+check "event withdrawal confirmation opens" "$(request vol "volunteer/withdraw.jsp?id=$REG&from=event")" 200
+has "event confirmation cancels back to the event" "<a href=\"event.jsp?id=$EV\">Cancel</a>" 1
+has "event confirmation preserves its origin on submit" 'name="from" value="event"' 1
 check "GET confirmation leaves the signup active" "$(sql "SELECT status FROM event_registrations WHERE id=$REG")" ACTIVE
 check "withdrawal requires CSRF" "$(request vol volunteer/withdraw.jsp -d id="$REG")" 403
-check "withdrawal redirects" "$(post vol volunteer/withdraw.jsp -d id="$REG")" 302
+check "withdrawal from event redirects" "$(post vol volunteer/withdraw.jsp -d id="$REG" -d from=event)" 302
+TARGET=$(redirect)
+check "event withdrawal redirects back to the event" "${TARGET##*/}" "event.jsp?id=$EV"
+check "event details load after withdrawal" "$(request vol "volunteer/event.jsp?id=$EV")" 200
+has "event details show the withdrawal confirmation message" "You withdrew from Self signup $RUN." 1
+has "event details allow signing up again" '>Sign up</button>' 1
+has "event details hide withdrawal after it completes" '>Withdraw</a>' 0
 check "withdrawal records reason" "$(sql "SELECT end_reason FROM event_registrations WHERE id=$REG")" WITHDRAWN_BY_VOLUNTEER
 check "repeated withdrawal refused" "$(post vol volunteer/withdraw.jsp -d id="$REG")" 409
 # Reproduce a demo signup whose recorded signup time is later than the subsequent rejoin.
@@ -179,6 +191,8 @@ has "volunteer details list the rejoined event once" "<td><a href=\"event.jsp?id
 has "volunteer details show the previous withdrawal badge" ">Previously withdrawn</span>" 1
 has "volunteer details hide the old withdrawal row" ">Withdrawn</span>" 0
 check "volunteer can withdraw again" "$(post vol volunteer/withdraw.jsp -d id="$NEW_REG")" 302
+TARGET=$(redirect)
+check "withdrawal from My signups redirects back to My signups" "${TARGET##*/}" "signups.jsp"
 check "My signups loads after withdrawing again" "$(request vol volunteer/signups.jsp)" 200
 has "second withdrawal is shown as the current status" ">Withdrawn</span>" 1
 has "second withdrawal hides the previous withdrawal badge" ">Previously withdrawn</span>" 0
@@ -218,6 +232,8 @@ token demo volunteer/signups.jsp
 check "past signup remains in history" "$(request demo volunteer/signups.jsp)" 200
 has "history shows past event" "Toa Payoh void deck screening" 1
 check "past signup cannot be withdrawn" "$(post demo volunteer/withdraw.jsp -d id="$DEMO_PAST")" 409
+check "past event details load for a signed-up volunteer" "$(request demo "volunteer/event.jsp?id=$PAST")" 200
+has "past event details hide withdrawal" '>Withdraw</a>' 0
 
 echo "== Admin cancellation and self-service deactivation"
 token admin "admin/event-cancel.jsp?id=$ADMIN_EV"

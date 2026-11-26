@@ -21,6 +21,7 @@ import java.util.Map;
 /** Screening events. Times are Singapore local time; see {@link #now()}. */
 public final class Events {
     public static final ZoneId ZONE = ZoneId.of("Asia/Singapore");
+    private static final int PAGE_SIZE = 9;
     private static final DateTimeFormatter INPUT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
     private static final DateTimeFormatter DISPLAY =
             DateTimeFormatter.ofPattern("EEE d MMM yyyy, h:mm a", Locale.ENGLISH);
@@ -105,6 +106,8 @@ public final class Events {
             return startsAt.format(DISPLAY) + " – " + end;
         }
     }
+
+    public record SearchPage(List<Event> events, long number, long pageCount, long total) {}
 
     /** A validated create/edit form. */
     public record Form(String title, String location, String description, LocalDateTime startsAt,
@@ -318,8 +321,51 @@ public final class Events {
 
     public static List<Event> search(String text, Filter filter, StartDateRange dates, StartTimeRange times,
             StartOrder order) throws SQLException {
-        StringBuilder sql = new StringBuilder(SELECT).append(" WHERE 1 = 1");
         List<Object> params = new ArrayList<>();
+        String where = searchConditions(text, filter, dates, times, params);
+        try (Connection db = Accounts.connect()) {
+            return searchRows(db, where + searchOrder(filter, order) + " LIMIT 200", params);
+        }
+    }
+
+    public static SearchPage searchPage(String text, Filter filter, StartDateRange dates,
+            StartTimeRange times, StartOrder order, long requestedPage) throws SQLException {
+        List<Object> params = new ArrayList<>();
+        String where = searchConditions(text, filter, dates, times, params);
+        try (Connection db = Accounts.connect()) {
+            // Keep the count and result rows on the same snapshot during concurrent edits.
+            db.setReadOnly(true);
+            db.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
+            db.setAutoCommit(false);
+            try {
+                long total;
+                try (PreparedStatement count = db.prepareStatement("SELECT COUNT(*) FROM events e" + where)) {
+                    bindSearchParams(count, params);
+                    try (ResultSet rows = count.executeQuery()) {
+                        rows.next();
+                        total = rows.getLong(1);
+                    }
+                }
+                long pageCount = total / PAGE_SIZE + (total % PAGE_SIZE == 0 ? 0 : 1);
+                long page = Math.max(1, Math.min(requestedPage, pageCount));
+                List<Event> events = List.of();
+                if (total > 0) {
+                    params.add(PAGE_SIZE);
+                    params.add((page - 1) * PAGE_SIZE);
+                    events = searchRows(db, where + searchOrder(filter, order) + " LIMIT ? OFFSET ?", params);
+                }
+                db.commit();
+                return new SearchPage(events, page, pageCount, total);
+            } catch (SQLException | RuntimeException e) {
+                db.rollback();
+                throw e;
+            }
+        }
+    }
+
+    private static String searchConditions(String text, Filter filter, StartDateRange dates,
+            StartTimeRange times, List<Object> params) {
+        StringBuilder sql = new StringBuilder(" WHERE 1 = 1");
         LocalDateTime now = now();
         switch (filter) {
             case UPCOMING -> { sql.append(" AND e.status = 'OPEN' AND e.starts_at > ?"); params.add(now); }
@@ -349,14 +395,18 @@ public final class Events {
             sql.append(" AND TIME(e.starts_at) <= ?");
             params.add(times.to().withSecond(59));
         }
+        return sql.toString();
+    }
+
+    private static String searchOrder(Filter filter, StartOrder order) {
         boolean earliestFirst = order == StartOrder.EARLIEST
                 || (order == StartOrder.DEFAULT && filter == Filter.UPCOMING);
-        sql.append(earliestFirst ? " ORDER BY e.starts_at, e.id" : " ORDER BY e.starts_at DESC, e.id DESC");
-        sql.append(" LIMIT 200");
-        try (Connection db = Accounts.connect(); PreparedStatement statement = db.prepareStatement(sql.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                statement.setObject(i + 1, params.get(i));
-            }
+        return earliestFirst ? " ORDER BY e.starts_at, e.id" : " ORDER BY e.starts_at DESC, e.id DESC";
+    }
+
+    private static List<Event> searchRows(Connection db, String clauses, List<Object> params) throws SQLException {
+        try (PreparedStatement statement = db.prepareStatement(SELECT + clauses)) {
+            bindSearchParams(statement, params);
             List<Event> events = new ArrayList<>();
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
@@ -364,6 +414,12 @@ public final class Events {
                 }
             }
             return events;
+        }
+    }
+
+    private static void bindSearchParams(PreparedStatement statement, List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            statement.setObject(i + 1, params.get(i));
         }
     }
 

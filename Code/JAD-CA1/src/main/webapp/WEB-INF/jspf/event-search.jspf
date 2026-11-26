@@ -1,0 +1,47 @@
+<%@ page import="java.net.URLEncoder,java.nio.charset.StandardCharsets,java.sql.SQLException,java.time.LocalDateTime,java.util.List,java.util.Locale" %>
+<%
+    String q = Web.field(request, "q").strip();
+    if (q.length() > 100) q = q.substring(0, 100);
+    Events.Filter filter = Events.Filter.UPCOMING;
+    for (Events.Filter option : Events.Filter.values()) {
+        if (option.name().equalsIgnoreCase(Web.field(request, "show"))) filter = option;
+    }
+    String fromDate = Web.field(request, "fromDate");
+    String toDate = Web.field(request, "toDate");
+    String fromTime = Web.field(request, "fromTime");
+    String toTime = Web.field(request, "toTime");
+    boolean advanced = !fromDate.isEmpty() || !toDate.isEmpty() || !fromTime.isEmpty() || !toTime.isEmpty();
+    String sort = Web.field(request, "sort");
+    Events.StartOrder order = Events.StartOrder.DEFAULT;
+    if ("earliest".equals(sort)) {
+        order = Events.StartOrder.EARLIEST;
+    } else if ("latest".equals(sort)) {
+        order = Events.StartOrder.LATEST;
+    }
+    Events.SearchPage eventPage = new Events.SearchPage(List.of(), 1, 0, 0);
+    String error = "";
+    try {
+        Events.StartDateRange dates = Events.StartDateRange.parse(fromDate, toDate);
+        Events.StartTimeRange times = Events.StartTimeRange.parse(fromTime, toTime);
+        eventPage = Events.searchPage(q, filter, dates, times, order, Web.id(request, "page"));
+    } catch (IllegalArgumentException e) {
+        response.setStatus(400);
+        error = e.getMessage();
+    } catch (SQLException e) {
+        application.log("Event search failed. SQL state: " + e.getSQLState());
+        response.setStatus(503);
+        error = "Events are temporarily unavailable.";
+    }
+    LocalDateTime now = Events.now();
+    String pageUrl = "";
+    if (eventPage.pageCount() > 1) {
+        pageUrl = "events.jsp?q=" + URLEncoder.encode(q, StandardCharsets.UTF_8)
+                + "&show=" + filter.name().toLowerCase(Locale.ROOT)
+                + "&sort=" + URLEncoder.encode(sort, StandardCharsets.UTF_8)
+                + "&fromDate=" + URLEncoder.encode(fromDate, StandardCharsets.UTF_8)
+                + "&toDate=" + URLEncoder.encode(toDate, StandardCharsets.UTF_8)
+                + "&fromTime=" + URLEncoder.encode(fromTime, StandardCharsets.UTF_8)
+                + "&toTime=" + URLEncoder.encode(toTime, StandardCharsets.UTF_8)
+                + "&page=";
+    }
+%>

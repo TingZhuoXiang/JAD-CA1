@@ -2,7 +2,10 @@
     import="java.sql.SQLException,sg.edu.sp.jad.*" %>
 <%
     Accounts.User user = (Accounts.User) request.getAttribute("currentUser");
-    String navCurrent = "signups";
+    boolean fromEvent = "event".equals(Web.field(request, "from"));
+    String navCurrent = fromEvent ? "events" : "signups";
+    String backUrl = "signups.jsp";
+    String backLabel = "Back to my signups";
     long id = Web.id(request, "id");
     Registrations.Signup signup = null;
     String error = "";
@@ -12,10 +15,14 @@
             response.sendError(404, "That signup does not exist.");
             return;
         }
+        if (fromEvent) {
+            backUrl = "event.jsp?id=" + signup.eventId();
+            backLabel = "Back to event";
+        }
         if ("POST".equals(request.getMethod())) {
             if (Registrations.withdrawByVolunteer(id, user.id())) {
                 Web.flash(request, "You withdrew from " + signup.eventTitle() + ".");
-                response.sendRedirect("signups.jsp");
+                response.sendRedirect(backUrl);
                 return;
             }
             response.setStatus(409);
@@ -53,11 +60,12 @@
         <form method="post" action="withdraw.jsp">
             <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
             <input type="hidden" name="id" value="<%= signup.id() %>">
+            <% if (fromEvent) { %><input type="hidden" name="from" value="event"><% } %>
             <button type="submit" class="danger">Confirm withdrawal</button>
         </form>
-        <a href="signups.jsp">Cancel</a>
+        <a href="<%= backUrl %>">Cancel</a>
     </div>
-    <% } else { %><p><a href="signups.jsp">Back to my signups</a></p><% } %>
+    <% } else { %><p><a href="<%= backUrl %>"><%= backLabel %></a></p><% } %>
 </main>
 </body>
 </html>
