@@ -29,10 +29,12 @@ request() {
 token() {
     request "$1" "$2" >/dev/null
     sed -n 's/.*name="csrf" value="\([0-9a-f]*\)".*/\1/p' "$W/body" | head -1 > "$W/$1.tok"
+    sed -n 's/.*name="formToken" value="\([0-9a-f]*\)".*/\1/p' "$W/body" | head -1 > "$W/$1.form"
 }
 post() {
-    local jar=$1 path=$2; shift 2
-    request "$jar" "$path" --data-urlencode "csrf=$(cat "$W/$jar.tok")" "$@"
+    local jar=$1 path=$2 f; shift 2
+    f=$(cat "$W/$jar.form" 2>/dev/null)
+    request "$jar" "$path" --data-urlencode "csrf=$(cat "$W/$jar.tok")" ${f:+--data-urlencode "formToken=$f"} "$@"
 }
 redirect() { sed -n 's/^[Ll]ocation: //p' "$W/headers" | tr -d '\r'; }
 login() {

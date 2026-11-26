@@ -37,6 +37,12 @@
                 response.setStatus(400);
                 error = "Check the fields below and try again.";
             } else if (original == null) {
+                if (!Web.useFormToken(request)) {
+                    // A second click on the same form: the first click already created the event.
+                    Web.flash(request, "That form was already submitted, so the event was not created twice.");
+                    response.sendRedirect("events.jsp?show=all");
+                    return;
+                }
                 long created = Events.create(form, user.id());
                 Web.flash(request, "Event created.");
                 response.sendRedirect("event.jsp?id=" + created);
@@ -75,7 +81,7 @@
         <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
         <form method="post" action="event-form.jsp">
             <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-            <% if (original != null) { %><input type="hidden" name="id" value="<%= id %>"><% } %>
+            <% if (original != null) { %><input type="hidden" name="id" value="<%= id %>"><% } else { %><input type="hidden" name="formToken" value="<%= Web.formToken(request) %>"><% } %>
             <div class="form-grid">
                 <div class="field full">
                     <label for="title">Title <span class="req">*</span></label>
