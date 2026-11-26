@@ -106,6 +106,15 @@ public final class Events {
         }
     }
 
+    /** Who created and cancelled an event, and when it was created and last changed. */
+    public record Audit(String createdBy, LocalDateTime createdAt, LocalDateTime updatedAt, String cancelledBy) {
+
+        /** True when the event changed after it was created (an edit or a cancellation). */
+        public boolean changedSinceCreated() {
+            return updatedAt.isAfter(createdAt);
+        }
+    }
+
     /** A validated create/edit form. */
     public record Form(String title, String location, String description, LocalDateTime startsAt,
             LocalDateTime endsAt) {}
@@ -278,6 +287,34 @@ public final class Events {
                 throw e;
             }
         }
+    }
+
+    /**
+     * Returns who created and cancelled the event, or null if it does not exist. created_at and
+     * updated_at are TIMESTAMP columns set by MySQL, so they are read as instants and converted to
+     * Singapore time like every other time the app shows.
+     */
+    public static Audit audit(long id) throws SQLException {
+        String sql = """
+                SELECT creator.full_name AS created_by, e.created_at, e.updated_at,
+                       canceller.full_name AS cancelled_by
+                FROM events e
+                JOIN accounts creator ON creator.id = e.created_by
+                LEFT JOIN accounts canceller ON canceller.id = e.cancelled_by
+                WHERE e.id = ?
+                """;
+        try (Connection db = Accounts.connect(); PreparedStatement statement = db.prepareStatement(sql)) {
+            statement.setLong(1, id);
+            try (ResultSet rows = statement.executeQuery()) {
+                if (!rows.next()) return null;
+                return new Audit(rows.getString("created_by"), singaporeTime(rows.getTimestamp("created_at")),
+                        singaporeTime(rows.getTimestamp("updated_at")), rows.getString("cancelled_by"));
+            }
+        }
+    }
+
+    private static LocalDateTime singaporeTime(java.sql.Timestamp timestamp) {
+        return timestamp.toInstant().atZone(ZONE).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
     }
 
     /** Number of signup rows of any status for an event, shown before a delete. */

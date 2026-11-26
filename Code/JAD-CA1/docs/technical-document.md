@@ -183,6 +183,13 @@ parameter, so they never depend on the MySQL server's time zone.
 | 4.4 | HttpSession for auth; invalidate on logout | `Web.signIn`, `AccessFilter`, `logout.jsp` |
 | 4.5 | Ready to convert a feature to MVC in A2 | Data access already separated into Java classes; JSPs only handle the request and render |
 
+**Admin extras (beyond the brief):** these support the same event and roster features for staff running a screening station.
+
+- **Download roster (CSV):** `admin/event-roster-csv.jsp?id=` returns the event's roster as a spreadsheet file (participant ID, name, username, contact number, email, sign-up status, time and who added them). It contains the same rows as the roster on `admin/event.jsp`.
+- **Print roster:** a button on `admin/event.jsp` opens the browser's print dialog. A print stylesheet in `site.css` hides the header, buttons and forms, so only the event details and roster are printed.
+- **Copy event:** `admin/event-form.jsp?copy=` opens the create form pre-filled with another event's title, location and description, for repeat screenings. The date and time are left blank for the Admin to choose, and sign-ups are not copied. Saving goes through the same validation and `Events.create`.
+- **Event history:** `admin/event.jsp` shows who created the event and when, when it last changed, and who cancelled it (`Events.audit`, which joins `events.created_by` and `cancelled_by` to `accounts`).
+
 **Participant self-service:** `volunteer/profile.jsp` edits the signed-in Volunteer’s name, contact number and email. `volunteer/events.jsp` and `volunteer/event.jsp` provide event search, filters, details and signup. `volunteer/signups.jsp` shows upcoming signups and history, including Admin-added signups and cancellations. `volunteer/withdraw.jsp` confirms withdrawal, and the shared signup procedure permits rejoining before the event starts. `volunteer/deactivate.jsp` confirms account deactivation, cancels upcoming signups in the same transaction and ends the session.
 
 The Volunteer pages take the account ID from the authenticated session. Profile edits and deactivation cannot select another account. The registration lookup and withdrawal update both scope the registration ID to the signed-in Volunteer. The shared withdrawal update also checks that the event is open and has not started.
@@ -196,7 +203,8 @@ These reuse `Registrations.register`, `Registrations.withdrawByVolunteer` and `R
 | --- | --- |
 | `page` directive | `contentType`, `pageEncoding`, `import`, and `session="false"` on the sign-in, registration and all protected pages, so a session is never created by accident and pages ask for it explicitly with `request.getSession(false)` |
 | `include` directive | `<%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>` — one shared Admin header (kept under `WEB-INF` so it cannot be requested directly) |
-| Declaration `<%! %>` | `admin/volunteer-new.jsp` — a constant session key |
+| Declaration `<%! %>` | `admin/volunteer-new.jsp` — a constant session key; `admin/event-roster-csv.jsp` — a `cell()` method that quotes CSV values |
+| Non-HTML output | `admin/event-roster-csv.jsp` sets `contentType="text/csv"` and `trimDirectiveWhitespaces="true"`, adds a `Content-Disposition` header with `response.setHeader`, and writes rows with `out.write` |
 | Scriptlets `<% %>` | Form processing, validation and calls to the helper classes at the top of each page; loops that render tables |
 | Expressions `<%= %>` | Output, always through `Web.html(...)` to escape HTML |
 | JSP comments `<%-- --%>` | `admin-nav.jspf` |
@@ -218,6 +226,7 @@ expressions, pattern `instanceof`, text blocks). Plain `.java` classes are not a
 | Session | New session ID on sign-in and after a password change; `HttpOnly` and `SameSite=Lax` cookies; 20-minute timeout; cookie-only tracking. |
 | Output | All user data is HTML-escaped; a Content-Security-Policy blocks inline scripts and styles; `Cache-Control: no-store`. |
 | Errors | Database errors are logged with the SQL state only; users see a generic message with HTTP 503. |
+| CSV export | Every value is quoted. A value that a spreadsheet could run as a formula (starting with `=`, `+`, `-` or `@`) gets a leading apostrophe, unless it holds only phone-number characters. The export is under `/admin/`, so only Admins can download it. |
 
 ---
 
@@ -252,8 +261,8 @@ TomEE 10), MySQL 8.0, MySQL Connector/J.
 ### Automated end-to-end tests
 
 `tests/admin-tests.sh` signs in through the real login form, submits every Admin form with its CSRF token,
-and checks both the HTTP results and the database rows. **Result on 24 Nov 2026: 93 passed, 0 failed**
-(TomEE 10.2.0, MySQL 8.0, JDK 26).
+and checks both the HTTP results and the database rows. **Result on 26 Nov 2026: 115 passed, 0 failed**
+(TomEE 10.2.0, MySQL 8.0, JDK 26), including the 22 checks for the Admin extras.
 
 | Area | What is checked |
 | --- | --- |
@@ -265,6 +274,7 @@ and checks both the HTTP results and the database rows. **Result on 24 Nov 2026:
 | Deactivation | Confirmation page; upcoming sign-ups cancelled, past kept; open session ended; sign-in refused; cannot be added to events |
 | Event cancel | Confirmation page; event kept as cancelled; active sign-ups cancelled with history kept; later sign-ups refused; cancelling twice changes nothing |
 | Event delete | Confirmation page shows sign-up count; wrong typed title refused; correct title deletes the event and its sign-ups; page then 404 |
+| Admin extras | Roster CSV: returns 200 as a `text/csv` file download with a header row and the roster; a formula-like name is neutralised; a phone number is kept as typed; a participant gets 403; a missing event gives 404. The event page shows the CSV link, the print button, and who created and cancelled the event. Copy event: the form is pre-filled with the dates left blank and saves as a new open event with no sign-ups; a missing source event gives 404 |
 | Rendering | Every Admin list and detail page returns 200 for upcoming, past and cancelled events |
 
 To run: start the server, then from Git Bash
@@ -284,6 +294,8 @@ The script leaves its test rows (named with a run number) in the database.
 `tests/volunteer-tests.sh` uses the real forms and checks MySQL state. It covers profile validation and ownership, event search and filters, signup eligibility and duplicate prevention, confirmed withdrawal and rejoining, and self-deactivation with signup history retained. It also checks that Volunteer signups reach the Admin roster and that Admin-added or cancelled signups appear correctly in My signups. See the [setup guide](../README.md#end-to-end-tests) for the commands.
 
 Phase 3 verification on TomEE 10.2 and MySQL 8.0.43 passed all 71 Volunteer checks and all 93 Admin regression checks against a disposable seeded schema.
+
+Re-run on 26 Nov 2026 after the Admin extras were added: `admin-tests.sh` 115 passed, 0 failed; `volunteer-tests.sh` 138 passed, 0 failed.
 
 ---
 
