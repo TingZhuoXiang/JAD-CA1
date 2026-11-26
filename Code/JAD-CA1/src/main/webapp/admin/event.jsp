@@ -8,7 +8,6 @@
     if (find.length() > 100) find = find.substring(0, 100);
     String error = "";
     Events.Event event = null;
-    Events.Audit audit = null;
     List<Registrations.SignupSummary> roster = List.of();
     List<Volunteers.Volunteer> matches = List.of();
     try {
@@ -43,7 +42,6 @@
             response.sendError(404, "That event does not exist.");
             return;
         }
-        audit = Events.audit(id);
         roster = Registrations.summarize(Registrations.roster(id), Registrations.Signup::volunteerId);
         if (!find.isEmpty()) {
             matches = Volunteers.search(find, Volunteers.Filter.ACTIVE);
@@ -69,12 +67,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= event == null ? "Event" : Web.html(event.title()) %> | Admin | Vision Screening</title>
     <link rel="stylesheet" href="../site.css">
-    <script src="print.js" defer></script>
 </head>
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <p class="no-print"><a href="events.jsp">← Events</a></p>
+    <p><a href="events.jsp">← Events</a></p>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <% if (event != null) {
            boolean open = event.openForSignup(now);
@@ -87,15 +84,8 @@
         <dt>When</dt><dd><%= Web.html(event.when()) %></dd>
         <dt>Location</dt><dd><%= Web.html(event.location()) %></dd>
         <dt>Description</dt><dd><%= event.description().isEmpty() ? "<span class=\"muted\">None</span>" : Web.html(event.description()) %></dd>
-        <% if (audit != null) { %>
-        <dt>Created</dt><dd><%= Events.display(audit.createdAt()) %> <span class="muted">by <%= Web.html(audit.createdBy()) %></span></dd>
-        <% if (audit.changedSinceCreated()) { %>
-        <dt>Last changed</dt><dd><%= Events.display(audit.updatedAt()) %></dd>
-        <% } %>
-        <% } %>
         <% if (event.status() == Events.Status.CANCELLED) { %>
-        <dt>Cancelled</dt><dd><%= Events.display(event.cancelledAt()) %>
-            <% if (audit != null && audit.cancelledBy() != null) { %><span class="muted">by <%= Web.html(audit.cancelledBy()) %></span><% } %></dd>
+        <dt>Cancelled</dt><dd><%= Events.display(event.cancelledAt()) %></dd>
         <% } %>
     </dl>
     <div class="actions">
@@ -103,18 +93,11 @@
         <a class="button secondary" href="event-form.jsp?id=<%= event.id() %>">Edit details</a>
         <a class="button secondary" href="event-cancel.jsp?id=<%= event.id() %>">Cancel event</a>
         <% } %>
-        <a class="button secondary" href="event-form.jsp?copy=<%= event.id() %>">Copy event</a>
         <a href="event-delete.jsp?id=<%= event.id() %>">Delete event…</a>
     </div>
 
     <section>
         <h2>Roster <span class="muted">(<%= activeCount %> signed up)</span></h2>
-        <% if (!roster.isEmpty()) { %>
-        <div class="actions">
-            <a class="button secondary" href="event-roster-csv.jsp?id=<%= event.id() %>">Download roster (CSV)</a>
-            <button type="button" class="secondary" data-print>Print roster</button>
-        </div>
-        <% } %>
         <% if (open) { %>
         <form class="row" method="get" action="event.jsp" role="search">
             <input type="hidden" name="id" value="<%= event.id() %>">
