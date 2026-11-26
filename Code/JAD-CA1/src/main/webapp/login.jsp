@@ -32,24 +32,32 @@
     <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<main>
-    <a href="./">Vision Screening</a>
-    <h1>Sign in</h1>
-    <% if ("registered".equals(notice)) { %><p role="status">Account created. You can now sign in.</p><% } %>
-    <% if ("signin".equals(notice)) { %><p role="status">Sign in to continue. Your previous session may have expired.</p><% } %>
-    <% if ("loggedout".equals(notice)) { %><p role="status">You’ve signed out.</p><% } %>
-    <% if ("deactivated".equals(notice)) { %><p role="status">Your account is deactivated and you have been signed out.</p><% } %>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <form method="post" action="login.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession()) %>">
-        <label for="username">Username</label>
-        <input id="username" name="username" autocomplete="username" maxlength="32" required
-               value="<%= Web.html(username) %>">
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
-        <button type="submit">Sign in</button>
-    </form>
-    <p><a href="register.jsp">Create a volunteer account</a></p>
+<% String navCurrent = "signin"; %>
+<main class="wide">
+    <%@ include file="/WEB-INF/jspf/public-header.jspf" %>
+    <div class="panel narrow">
+        <h1>Sign in</h1>
+        <p class="meta">Admins and volunteers sign in here.</p>
+        <% if ("registered".equals(notice)) { %><p class="callout success" role="status">Account created. You can now sign in.</p><% } %>
+        <% if ("signin".equals(notice)) { %><p class="callout info" role="status">Sign in to continue. Your previous session may have expired.</p><% } %>
+        <% if ("loggedout".equals(notice)) { %><p class="callout success" role="status">You’ve signed out.</p><% } %>
+        <% if ("deactivated".equals(notice)) { %><p class="callout warn" role="status">Your account is deactivated and you have been signed out.</p><% } %>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <form method="post" action="login.jsp">
+            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession()) %>">
+            <div class="field">
+                <label for="username">Username</label>
+                <input id="username" name="username" autocomplete="username" maxlength="32" required
+                       value="<%= Web.html(username) %>">
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+            </div>
+            <div class="form-actions"><button type="submit" class="block">Sign in</button></div>
+        </form>
+        <p class="muted">New volunteer? <a href="register.jsp">Create a volunteer account</a></p>
+    </div>
 </main>
 </body>
 </html>

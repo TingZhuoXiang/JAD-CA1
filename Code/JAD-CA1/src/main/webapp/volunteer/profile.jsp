@@ -56,36 +56,55 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/volunteer-nav.jspf" %>
-    <h1>My profile</h1>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Volunteer portal</p>
+            <h1>My profile</h1>
+            <p class="lede">Keep your contact details up to date so the team can reach you.</p>
+        </div>
+    </div>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <% if (profile != null) { %>
-    <dl class="details">
-        <dt>Volunteer ID</dt><dd><%= profile.volunteerId() %></dd>
-        <dt>Username</dt><dd><%= Web.html(profile.username()) %></dd>
-        <dt>Role</dt><dd>Volunteer</dd>
-    </dl>
-    <h2>Contact details</h2>
-    <form method="post" action="profile.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <label for="fullName">Full name</label>
-        <input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="100" required
-               value="<%= Web.html(fullName) %>" aria-describedby="fullName-error">
-        <small id="fullName-error" class="error"><%= Web.html(errors.getOrDefault("fullName", "")) %></small>
-        <label for="contactNumber">Contact number</label>
-        <input id="contactNumber" name="contactNumber" type="tel" autocomplete="tel" maxlength="20" required
-               value="<%= Web.html(contactNumber) %>" aria-describedby="contactNumber-error">
-        <small id="contactNumber-error" class="error"><%= Web.html(errors.getOrDefault("contactNumber", "")) %></small>
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required
-               value="<%= Web.html(email) %>" aria-describedby="email-error">
-        <small id="email-error" class="error"><%= Web.html(errors.getOrDefault("email", "")) %></small>
-        <button type="submit">Save details</button>
-    </form>
+    <div class="grid-2">
+        <div class="panel">
+            <h2>Account</h2>
+            <dl class="kv">
+                <dt>Volunteer ID</dt><dd><%= profile.volunteerId() %></dd>
+                <dt>Username</dt><dd><%= Web.html(profile.username()) %></dd>
+                <dt>Role</dt><dd>Volunteer</dd>
+            </dl>
+        </div>
+        <div class="panel">
+            <h2>Contact details</h2>
+            <form method="post" action="profile.jsp">
+                <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+                <div class="field">
+                    <label for="fullName">Full name <span class="req">*</span></label>
+                    <input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="100" required
+                           value="<%= Web.html(fullName) %>" aria-describedby="fullName-error">
+                    <small id="fullName-error" class="error"><%= Web.html(errors.getOrDefault("fullName", "")) %></small>
+                </div>
+                <div class="field">
+                    <label for="contactNumber">Contact number <span class="req">*</span></label>
+                    <input id="contactNumber" name="contactNumber" type="tel" autocomplete="tel" maxlength="20" required
+                           value="<%= Web.html(contactNumber) %>" aria-describedby="contactNumber-error">
+                    <small id="contactNumber-error" class="error"><%= Web.html(errors.getOrDefault("contactNumber", "")) %></small>
+                </div>
+                <div class="field">
+                    <label for="email">Email <span class="req">*</span></label>
+                    <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required
+                           value="<%= Web.html(email) %>" aria-describedby="email-error">
+                    <small id="email-error" class="error"><%= Web.html(errors.getOrDefault("email", "")) %></small>
+                </div>
+                <div class="form-actions"><button type="submit">Save details</button></div>
+            </form>
+        </div>
+    </div>
 
-    <section>
+    <section class="panel full danger-zone">
         <h2>Deactivate account</h2>
         <p>Deactivating your account blocks sign-in and cancels your upcoming signups.</p>
-        <a class="button secondary" href="deactivate.jsp">Deactivate account</a>
+        <div class="actions"><a class="button danger-outline" href="deactivate.jsp">Deactivate account</a></div>
     </section>
     <% } %>
 </main>

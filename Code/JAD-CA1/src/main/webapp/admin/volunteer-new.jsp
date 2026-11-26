@@ -58,42 +58,57 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <p><a href="volunteers.jsp">← Volunteers</a></p>
+    <a class="back" href="volunteers.jsp">← All volunteers</a>
+    <div class="panel">
     <% if (created != null) { %>
-    <h1>Account created</h1>
-    <p class="notice" role="status">Volunteer <strong>V-<%= created.id() %></strong> was created with username
-        <strong><%= Web.html(created.username()) %></strong>.</p>
-    <p>Give the volunteer this temporary password. <strong>It is shown only once</strong> and is not stored anywhere
-        you can view again. They must choose a new password the first time they sign in.</p>
-    <p class="secret"><%= Web.html(created.temporaryPassword()) %></p>
-    <div class="actions">
-        <a class="button" href="volunteer.jsp?id=<%= created.id() %>">View volunteer</a>
-        <a class="button secondary" href="volunteer-new.jsp">Create another</a>
-    </div>
+        <h1>Account created</h1>
+        <p class="callout success" role="status">Volunteer <strong>V-<%= created.id() %></strong> was created with username
+            <strong><%= Web.html(created.username()) %></strong>.</p>
+        <p>Give the volunteer this temporary password. <strong>It is shown only once</strong> and is not stored anywhere
+            you can view again. They must choose a new password the first time they sign in.</p>
+        <p class="secret"><%= Web.html(created.temporaryPassword()) %></p>
+        <div class="form-actions">
+            <a class="button secondary" href="volunteer-new.jsp">Create another</a>
+            <a class="button" href="volunteer.jsp?id=<%= created.id() %>">View volunteer</a>
+        </div>
     <% } else { %>
-    <h1>Create volunteer account</h1>
-    <% if (request.getParameter("created") != null) { %>
-    <p class="notice" role="status">That temporary password has already been shown and cannot be displayed again.</p>
+        <h1>Create volunteer account</h1>
+        <% if (request.getParameter("created") != null) { %>
+        <p class="callout info" role="status">That temporary password has already been shown and cannot be displayed again.</p>
+        <% } %>
+        <p class="meta">This creates a sign-in account only. Add them to events from an event’s roster.</p>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <form method="post" action="volunteer-new.jsp">
+            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+            <div class="form-grid">
+                <div class="field">
+                    <label for="username">Username <span class="req">*</span></label>
+                    <input id="username" name="username" maxlength="32" required autocomplete="off" value="<%= Web.html(username) %>" aria-describedby="username-hint">
+                    <small id="username-hint" class="hint"><%= errors.getOrDefault("username", "3–32 letters, digits, dots, underscores or hyphens.") %></small>
+                </div>
+                <div class="field">
+                    <label for="fullName">Full name <span class="req">*</span></label>
+                    <input id="fullName" name="fullName" maxlength="100" required value="<%= Web.html(fullName) %>" aria-describedby="name-error">
+                    <small id="name-error" class="error"><%= errors.getOrDefault("fullName", "") %></small>
+                </div>
+                <div class="field">
+                    <label for="contactNumber">Contact number <span class="req">*</span></label>
+                    <input id="contactNumber" name="contactNumber" type="tel" maxlength="20" required value="<%= Web.html(contactNumber) %>" aria-describedby="phone-error">
+                    <small id="phone-error" class="error"><%= errors.getOrDefault("contactNumber", "") %></small>
+                </div>
+                <div class="field">
+                    <label for="email">Email <span class="req">*</span></label>
+                    <input id="email" name="email" type="email" maxlength="254" required value="<%= Web.html(email) %>" aria-describedby="email-error">
+                    <small id="email-error" class="error"><%= errors.getOrDefault("email", "") %></small>
+                </div>
+            </div>
+            <div class="form-actions">
+                <a href="volunteers.jsp">Cancel</a>
+                <button type="submit">Create account</button>
+            </div>
+        </form>
     <% } %>
-    <p class="muted">This creates a sign-in account only. Add them to events from an event’s roster.</p>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <form method="post" action="volunteer-new.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <label for="username">Username</label>
-        <input id="username" name="username" maxlength="32" required autocomplete="off" value="<%= Web.html(username) %>" aria-describedby="username-hint">
-        <small id="username-hint"><%= errors.getOrDefault("username", "3–32 letters, digits, dots, underscores or hyphens.") %></small>
-        <label for="fullName">Full name</label>
-        <input id="fullName" name="fullName" maxlength="100" required value="<%= Web.html(fullName) %>" aria-describedby="name-error">
-        <small id="name-error" class="error"><%= errors.getOrDefault("fullName", "") %></small>
-        <label for="contactNumber">Contact number</label>
-        <input id="contactNumber" name="contactNumber" type="tel" maxlength="20" required value="<%= Web.html(contactNumber) %>" aria-describedby="phone-error">
-        <small id="phone-error" class="error"><%= errors.getOrDefault("contactNumber", "") %></small>
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" maxlength="254" required value="<%= Web.html(email) %>" aria-describedby="email-error">
-        <small id="email-error" class="error"><%= errors.getOrDefault("email", "") %></small>
-        <button type="submit">Create account</button>
-    </form>
-    <% } %>
+    </div>
 </main>
 </body>
 </html>

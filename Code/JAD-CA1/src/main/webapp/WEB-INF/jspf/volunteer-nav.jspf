@@ -1,17 +1,21 @@
-<%-- Shared Volunteer header. Included statically using the page's user and navCurrent. --%>
-<header class="topbar">
-    <a class="brand" href="./">Vision Screening &middot; Volunteer</a>
-    <nav aria-label="Volunteer">
+<%-- Shared Volunteer header. Included statically using the page's user and navCurrent.
+     Keep this file ASCII: Jasper reads included fragments as ISO-8859-1 by default. --%>
+<header class="app-header volunteer">
+    <div class="strip"><span>Community vision screening</span><span>All times are Singapore time (SGT)</span></div>
+    <div class="bar">
+        <a class="brand" href="./"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" focusable="false"><path d="M12 5C6.6 5 2.9 9.2 1.6 12c1.3 2.8 5 7 10.4 7s9.1-4.2 10.4-7C21.1 9.2 17.4 5 12 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.1" fill="currentColor"/></svg></span><span><strong>Vision Screening</strong><small>Station Management System</small></span></a>
+        <form class="account" method="post" action="../logout.jsp">
+            <span class="who"><strong><%= Web.html(user.fullName()) %></strong><small><span class="role">Volunteer</span> &middot; <%= user.volunteerId() %></small></span>
+            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+            <button type="submit" class="secondary small">Sign out</button>
+        </form>
+    </div>
+    <nav class="tabs" aria-label="Volunteer">
         <a href="./" <%= "home".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Home</a>
         <a href="events.jsp" <%= "events".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>Events</a>
         <a href="signups.jsp" <%= "signups".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>My signups</a>
         <a href="profile.jsp" <%= "profile".equals(navCurrent) ? "aria-current=\"page\"" : "" %>>My profile</a>
     </nav>
-    <form class="account inline" method="post" action="../logout.jsp">
-        <span class="muted"><%= Web.html(user.fullName()) %></span>
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <button type="submit" class="link">Sign out</button>
-    </form>
 </header>
 <% String flashMessage = Web.takeFlash(request);
    if (!flashMessage.isEmpty()) { %><p class="notice" role="status"><%= Web.html(flashMessage) %></p><% } %>

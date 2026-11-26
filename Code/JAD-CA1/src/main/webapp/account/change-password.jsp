@@ -49,32 +49,47 @@
     <link rel="stylesheet" href="../site.css">
 </head>
 <body>
-<main>
-    <a href="../">Vision Screening</a>
-    <h1><%= user.mustChangePassword() ? "Choose a new password" : "Change password" %></h1>
-    <% if (user.mustChangePassword()) { %>
-    <p role="status">Signed in as <strong><%= Web.html(user.fullName()) %></strong>. Your account was set up with a
-        temporary password. Choose your own password to continue.</p>
-    <% } %>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <form method="post" action="change-password.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <label for="current"><%= user.mustChangePassword() ? "Temporary password" : "Current password" %></label>
-        <input id="current" name="current" type="password" autocomplete="current-password" maxlength="128" required aria-describedby="current-error">
-        <small id="current-error" class="error"><%= errors.getOrDefault("current", "") %></small>
-        <label for="password">New password</label>
-        <input id="password" name="password" type="password" autocomplete="new-password"
-               minlength="<%= Accounts.MIN_PASSWORD_LENGTH %>" maxlength="128" required aria-describedby="password-hint">
-        <small id="password-hint"><%= errors.getOrDefault("password", "Use at least " + Accounts.MIN_PASSWORD_LENGTH + " characters.") %></small>
-        <label for="confirmation">Confirm new password</label>
-        <input id="confirmation" name="confirmation" type="password" autocomplete="new-password" maxlength="128" required aria-describedby="confirmation-error">
-        <small id="confirmation-error" class="error"><%= errors.getOrDefault("confirmation", "") %></small>
-        <button type="submit">Save password</button>
-    </form>
-    <form method="post" action="../logout.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <button type="submit" class="link">Sign out instead</button>
-    </form>
+<% boolean isAdmin = user.role() == Accounts.Role.ADMIN; %>
+<main class="wide">
+    <header class="app-header<%= isAdmin ? "" : " volunteer" %>">
+        <div class="strip"><span>Community vision screening</span><span>All times are Singapore time (SGT)</span></div>
+        <div class="bar">
+            <a class="brand" href="../"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" focusable="false"><path d="M12 5C6.6 5 2.9 9.2 1.6 12c1.3 2.8 5 7 10.4 7s9.1-4.2 10.4-7C21.1 9.2 17.4 5 12 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.1" fill="currentColor"/></svg></span><span><strong>Vision Screening</strong><small>Station Management System</small></span></a>
+            <div class="account"><span class="who"><strong><%= Web.html(user.fullName()) %></strong><small><span class="role"><%= isAdmin ? "Admin" : "Volunteer" %></span> &middot; signed in</small></span></div>
+        </div>
+    </header>
+    <div class="panel narrow">
+        <h1><%= user.mustChangePassword() ? "Choose a new password" : "Change password" %></h1>
+        <% if (user.mustChangePassword()) { %>
+        <p class="callout info" role="status">Signed in as <strong><%= Web.html(user.fullName()) %></strong>. Your account was set up with a
+            temporary password. Choose your own password to continue.</p>
+        <% } %>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <form method="post" action="change-password.jsp">
+            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+            <div class="field">
+                <label for="current"><%= user.mustChangePassword() ? "Temporary password" : "Current password" %></label>
+                <input id="current" name="current" type="password" autocomplete="current-password" maxlength="128" required aria-describedby="current-error">
+                <small id="current-error" class="error"><%= errors.getOrDefault("current", "") %></small>
+            </div>
+            <div class="field">
+                <label for="password">New password</label>
+                <input id="password" name="password" type="password" autocomplete="new-password"
+                       minlength="<%= Accounts.MIN_PASSWORD_LENGTH %>" maxlength="128" required aria-describedby="password-hint">
+                <small id="password-hint" class="hint"><%= errors.getOrDefault("password", "Use at least " + Accounts.MIN_PASSWORD_LENGTH + " characters.") %></small>
+            </div>
+            <div class="field">
+                <label for="confirmation">Confirm new password</label>
+                <input id="confirmation" name="confirmation" type="password" autocomplete="new-password" maxlength="128" required aria-describedby="confirmation-error">
+                <small id="confirmation-error" class="error"><%= errors.getOrDefault("confirmation", "") %></small>
+            </div>
+            <div class="form-actions"><button type="submit" class="block">Save password</button></div>
+        </form>
+        <form method="post" action="../logout.jsp">
+            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+            <button type="submit" class="link">Sign out instead</button>
+        </form>
+    </div>
 </main>
 </body>
 </html>

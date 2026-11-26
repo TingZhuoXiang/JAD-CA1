@@ -43,30 +43,39 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/volunteer-nav.jspf" %>
-    <p><a href="events.jsp">Back to events</a></p>
+    <a class="back" href="events.jsp">← Back to events</a>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <% if (event != null) { %>
-    <h1><%= Web.html(event.title()) %></h1>
-    <p><span class="badge <%= event.openForSignup(now) ? "ok" : event.status() == Events.Status.CANCELLED ? "off" : "" %>"><%= event.state(now) %></span></p>
-    <dl class="details">
-        <dt>When</dt><dd><%= Web.html(event.when()) %> (Singapore time)</dd>
-        <dt>Location</dt><dd><%= Web.html(event.location()) %></dd>
-    </dl>
-    <% if (!event.description().isBlank()) { %><p><%= Web.html(event.description()).replace("\n", "<br>") %></p><% } %>
-    <% if (latestSignup != null && latestSignup.active()) { %>
-    <p>You are signed up. <a href="signups.jsp">View my signups</a>.</p>
-    <% if (latestSignup.endable(now)) { %>
-    <p><a class="button secondary" href="withdraw.jsp?id=<%= latestSignup.id() %>&amp;from=event">Withdraw</a></p>
-    <% } %>
-    <% } else if (latestSignup != null && "REMOVED_BY_ADMIN".equals(latestSignup.endReason())) { %>
-    <% if (error.isEmpty()) { %><p>An admin removed you from this event. Only an admin can add you back.</p><% } %>
-    <% } else if (event.openForSignup(now) && response.getStatus() != 503) { %>
-    <form method="post" action="event.jsp">
-        <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-        <input type="hidden" name="id" value="<%= event.id() %>">
-        <button type="submit">Sign up</button>
-    </form>
-    <% } else if (!event.openForSignup(now)) { %><p>Signups are closed for this event.</p><% } %>
+    <div class="page-head">
+        <div>
+            <p class="eyebrow">Screening event</p>
+            <h1><%= Web.html(event.title()) %></h1>
+            <p class="lede"><span class="badge <%= event.openForSignup(now) ? "ok" : event.status() == Events.Status.CANCELLED ? "off" : "" %>"><%= event.state(now) %></span></p>
+        </div>
+    </div>
+    <div class="panel full">
+        <dl class="kv">
+            <dt>When</dt><dd><%= Web.html(event.when()) %> (Singapore time)</dd>
+            <dt>Location</dt><dd><%= Web.html(event.location()) %></dd>
+        </dl>
+        <% if (!event.description().isBlank()) { %><p><%= Web.html(event.description()).replace("\n", "<br>") %></p><% } %>
+        <div class="form-actions">
+        <% if (latestSignup != null && latestSignup.active()) { %>
+            <p class="spacer">You are signed up. <a href="signups.jsp">View my signups</a>.</p>
+            <% if (latestSignup.endable(now)) { %>
+            <a class="button danger-outline" href="withdraw.jsp?id=<%= latestSignup.id() %>&amp;from=event">Withdraw</a>
+            <% } %>
+        <% } else if (latestSignup != null && "REMOVED_BY_ADMIN".equals(latestSignup.endReason())) { %>
+            <% if (error.isEmpty()) { %><p class="spacer">An admin removed you from this event. Only an admin can add you back.</p><% } %>
+        <% } else if (event.openForSignup(now) && response.getStatus() != 503) { %>
+            <form method="post" action="event.jsp">
+                <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+                <input type="hidden" name="id" value="<%= event.id() %>">
+                <button type="submit">Sign up</button>
+            </form>
+        <% } else if (!event.openForSignup(now)) { %><p class="spacer muted">Signups are closed for this event.</p><% } %>
+        </div>
+    </div>
     <% } %>
 </main>
 </body>

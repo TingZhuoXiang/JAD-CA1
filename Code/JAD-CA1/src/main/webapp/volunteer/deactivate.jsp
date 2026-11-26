@@ -34,20 +34,22 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/volunteer-nav.jspf" %>
-    <h1>Deactivate your account?</h1>
-    <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
-    <% if (profile != null) { %>
-    <p>You'll be signed out and unable to sign in. This cancels your <%= profile.upcomingSignups() %>
-        upcoming signup<%= profile.upcomingSignups() == 1 ? "" : "s" %> and keeps your past signup history.
-        <strong>Reactivation is unavailable.</strong></p>
-    <div class="actions">
-        <form method="post" action="deactivate.jsp">
-            <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
-            <button type="submit" class="danger">Deactivate my account</button>
-        </form>
-        <a href="profile.jsp">Keep my account active</a>
+    <div class="panel">
+        <h1>Deactivate your account?</h1>
+        <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
+        <% if (profile != null) { %>
+        <p class="callout danger">You'll be signed out and unable to sign in. This cancels your <%= profile.upcomingSignups() %>
+            upcoming signup<%= profile.upcomingSignups() == 1 ? "" : "s" %> and keeps your past signup history.
+            <strong>Reactivation is unavailable.</strong></p>
+        <div class="form-actions">
+            <form method="post" action="deactivate.jsp">
+                <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+                <button type="submit" class="danger">Deactivate my account</button>
+            </form>
+            <a href="profile.jsp">Keep my account active</a>
+        </div>
+        <% } else { %><p><a href="profile.jsp">Back to my profile</a></p><% } %>
     </div>
-    <% } else { %><p><a href="profile.jsp">Back to my profile</a></p><% } %>
 </main>
 </body>
 </html>
