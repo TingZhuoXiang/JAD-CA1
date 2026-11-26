@@ -17,6 +17,12 @@
         contactNumber = Web.field(request, "contactNumber").strip();
         email = Web.field(request, "email").strip();
         errors = Accounts.validateNewAccount(username, fullName, contactNumber, email);
+        if (errors.isEmpty() && !Web.useFormToken(request)) {
+            // A second click on the same form: the first click created the account. Show its one-time
+            // password, instead of a "username already in use" error that would hide it for good.
+            response.sendRedirect("volunteer-new.jsp?created");
+            return;
+        }
         if (errors.isEmpty()) {
             try {
                 request.getSession(false).setAttribute(CREATED,
@@ -80,6 +86,7 @@
         <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
         <form method="post" action="volunteer-new.jsp">
             <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
+            <input type="hidden" name="formToken" value="<%= Web.formToken(request) %>">
             <div class="form-grid">
                 <div class="field">
                     <label for="username">Username <span class="req">*</span></label>

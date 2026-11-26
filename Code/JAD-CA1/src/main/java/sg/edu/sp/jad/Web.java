@@ -3,7 +3,11 @@ package sg.edu.sp.jad;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.HexFormat;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
@@ -12,6 +16,8 @@ public final class Web {
     public static final String CHANGE_PASSWORD = "/account/change-password.jsp";
     private static final String CSRF = "jad.csrf";
     private static final String FLASH = "jad.flash";
+    private static final String FORM_TOKENS = "jad.formTokens";
+    private static final int MAX_FORM_TOKENS = 20;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private Web() {}
@@ -31,6 +37,51 @@ public final class Web {
                 session.setAttribute(CSRF, token);
             }
             return token;
+        }
+    }
+
+    /**
+     * Issues a one-time token for a form that creates a record. The page puts it in a hidden
+     * "formToken" field, and {@link #useFormToken} accepts it only once, so a double-click or a
+     * repeated submit of the same form cannot create the record twice. Each time a create form is
+     * shown it gets a new token, so separate forms with identical details still work.
+     */
+    public static String formToken(HttpServletRequest request) {
+        byte[] bytes = new byte[16];
+        RANDOM.nextBytes(bytes);
+        String token = HexFormat.of().formatHex(bytes);
+        Set<String> tokens = formTokens(request.getSession(false));
+        synchronized (tokens) {
+            tokens.add(token);
+            // Keep only the newest few, so forms that are opened and never submitted do not pile up.
+            Iterator<String> oldest = tokens.iterator();
+            while (tokens.size() > MAX_FORM_TOKENS) {
+                oldest.next();
+                oldest.remove();
+            }
+        }
+        return token;
+    }
+
+    /**
+     * Uses up the request's form token. Returns true only the first time; a repeat, unknown or
+     * missing token returns false. The check and removal are one atomic step, so two requests that
+     * arrive at the same moment cannot both pass.
+     */
+    public static boolean useFormToken(HttpServletRequest request) {
+        String token = field(request, "formToken");
+        return !token.isEmpty() && formTokens(request.getSession(false)).remove(token);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<String> formTokens(HttpSession session) {
+        synchronized (session) {
+            Set<String> tokens = (Set<String>) session.getAttribute(FORM_TOKENS);
+            if (tokens == null) {
+                tokens = Collections.synchronizedSet(new LinkedHashSet<>());
+                session.setAttribute(FORM_TOKENS, tokens);
+            }
+            return tokens;
         }
     }
 

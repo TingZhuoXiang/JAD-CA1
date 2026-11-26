@@ -14,13 +14,16 @@ bad()  { FAIL=$((FAIL+1)); echo "FAIL  $1  ($2)"; }
 check(){ if [ "$2" = "$3" ]; then ok "$1"; else bad "$1" "expected $3, got $2"; fi; }
 has()  { if grep -q -- "$3" "$2"; then ok "$1"; else bad "$1" "missing: $3"; fi; }
 csrf() { grep -o 'name="csrf" value="[0-9a-f]*"' "$1" | head -1 | sed 's/.*value="//;s/"//'; }
+# one-time token that create forms carry, so a double-click cannot create a record twice
+ftok() { grep -o 'name="formToken" value="[0-9a-f]*"' "$1" | head -1 | sed 's/.*value="//;s/"//'; }
 # get JAR PATH -> body in $W/body, prints status
 get()  { curl -s -o "$W/body" -w "%{http_code}" -c "$W/$1" -b "$W/$1" "$B/$2"; }
-# post JAR PATH args... (adds csrf from the jar's last page) -> body in $W/body, prints status
-post() { local jar=$1 path=$2; shift 2; local t; t=$(cat "$W/$jar.tok" 2>/dev/null)
-         curl -s -o "$W/body" -w "%{http_code}" -c "$W/$jar" -b "$W/$jar" --data-urlencode "csrf=$t" "$@" "$B/$path"; }
+# post JAR PATH args... (adds csrf and any form token from the jar's last page) -> body in $W/body, prints status
+post() { local jar=$1 path=$2; shift 2; local t f s; t=$(cat "$W/$jar.tok" 2>/dev/null); f=$(cat "$W/$jar.form" 2>/dev/null)
+         s=$(curl -s -o "$W/body" -w "%{http_code}" -c "$W/$jar" -b "$W/$jar" --data-urlencode "csrf=$t" ${f:+--data-urlencode "formToken=$f"} "$@" "$B/$path")
+         f=$(ftok "$W/body"); [ -n "$f" ] && echo "$f" > "$W/$jar.form"; echo "$s"; }
 loc()  { curl -s -o /dev/null -w "%{redirect_url}" -c "$W/$1" -b "$W/$1" "$@"; }
-token(){ get "$1" "$2" >/dev/null; csrf "$W/body" > "$W/$1.tok"; }
+token(){ get "$1" "$2" >/dev/null; csrf "$W/body" > "$W/$1.tok"; ftok "$W/body" > "$W/$1.form"; }
 login(){ rm -f "$W/$1"; token "$1" login.jsp
          post "$1" login.jsp --data-urlencode "username=$2" --data-urlencode "password=$3" >/dev/null
          token "$1" "${4:-admin/}"; }
@@ -46,7 +49,7 @@ check "create: end before start rejected" "$(post A admin/event-form.jsp --data-
 has "create: end-before-start message" "$W/body" "The end must be after the start."
 check "create: start in past rejected" "$(post A admin/event-form.jsp --data-urlencode "title=Bad $RUN" --data-urlencode "location=X" --data-urlencode "startsAt=$(past 1 10:00)" --data-urlencode "endsAt=$(past 1 12:00)")" 400
 check "create: missing title rejected" "$(post A admin/event-form.jsp --data-urlencode "title=" --data-urlencode "location=X" --data-urlencode "startsAt=$(future 5 10:00)" --data-urlencode "endsAt=$(future 5 12:00)")" 400
-URL=$(loc A --data-urlencode "csrf=$(cat $W/A.tok)" --data-urlencode "title=Test screening $RUN" --data-urlencode "location=Test Hall <b>" --data-urlencode "description=Line one" --data-urlencode "startsAt=$(future 9 09:00)" --data-urlencode "endsAt=$(future 9 12:00)" "$B/admin/event-form.jsp")
+URL=$(loc A --data-urlencode "csrf=$(cat $W/A.tok)" --data-urlencode "formToken=$(cat $W/A.form)" --data-urlencode "title=Test screening $RUN" --data-urlencode "location=Test Hall <b>" --data-urlencode "description=Line one" --data-urlencode "startsAt=$(future 9 09:00)" --data-urlencode "endsAt=$(future 9 12:00)" "$B/admin/event-form.jsp")
 EV=$(echo "$URL" | idfrom)
 [ -n "$EV" ] && ok "create: valid event redirects to event $EV" || bad "create: valid event" "no redirect ($URL)"
 check "event page loads" "$(get A "admin/event.jsp?id=$EV")" 200
@@ -149,7 +152,7 @@ check "cancelling twice changes nothing" "$(post A admin/event-cancel.jsp -d "id
 
 echo "== Event delete"
 token A admin/event-form.jsp
-URL=$(loc A --data-urlencode "csrf=$(cat $W/A.tok)" --data-urlencode "title=Delete me $RUN" --data-urlencode "location=Test Hall" --data-urlencode "startsAt=$(future 12 09:00)" --data-urlencode "endsAt=$(future 12 12:00)" "$B/admin/event-form.jsp")
+URL=$(loc A --data-urlencode "csrf=$(cat $W/A.tok)" --data-urlencode "formToken=$(cat $W/A.form)" --data-urlencode "title=Delete me $RUN" --data-urlencode "location=Test Hall" --data-urlencode "startsAt=$(future 12 09:00)" --data-urlencode "endsAt=$(future 12 12:00)" "$B/admin/event-form.jsp")
 DEL=$(echo "$URL" | idfrom)
 token A "admin/event.jsp?id=$DEL"
 has "event page links to delete" "$W/body" "event-delete.jsp?id=$DEL"
@@ -164,6 +167,39 @@ check "delete with typed title" "$(post A admin/event-delete.jsp -d "id=$DEL" --
 check "event and its signups removed" "$(sql "SELECT CONCAT((SELECT COUNT(*) FROM events WHERE id=$DEL), '/', (SELECT COUNT(*) FROM event_registrations WHERE event_id=$DEL))")" "0/0"
 check "deleted event is 404" "$(get A "admin/event.jsp?id=$DEL")" 404
 check "delete page for missing event is 404" "$(get A "admin/event-delete.jsp?id=$DEL")" 404
+
+echo "== Double submit (one-time form token)"
+token A admin/event-form.jsp
+has "create event form carries a one-time token" "$W/body" 'name="formToken"'
+F=$(cat $W/A.form)
+EVF=(--data-urlencode "csrf=$(cat $W/A.tok)" --data-urlencode "location=Test Hall"
+     --data-urlencode "startsAt=$(future 14 09:00)" --data-urlencode "endsAt=$(future 14 11:00)")
+dbl() { curl -s -o /dev/null -w "%{http_code}" -b "$W/A" "${EVF[@]}" --data-urlencode "formToken=$F" \
+        --data-urlencode "title=Double $RUN" "$B/admin/event-form.jsp"; }
+dbl > "$W/d1" & dbl > "$W/d2" & wait
+check "two clicks at the same moment both get a redirect" "$(cat "$W/d1" "$W/d2" | tr -d '\r\n')" "302302"
+check "two clicks at the same moment create one event" "$(sql "SELECT COUNT(*) FROM events WHERE title='Double $RUN'")" 1
+check "submitting the same form again goes to the event list" "$(loc A "${EVF[@]}" --data-urlencode "formToken=$F" --data-urlencode "title=Double $RUN" "$B/admin/event-form.jsp")" "$B/admin/events.jsp?show=all"
+check "still one event after the repeat" "$(sql "SELECT COUNT(*) FROM events WHERE title='Double $RUN'")" 1
+get A "admin/events.jsp?show=all" >/dev/null
+has "event list explains the repeat was not saved" "$W/body" "already submitted"
+check "create without a form token goes to the event list" "$(loc A "${EVF[@]}" --data-urlencode "title=NoToken$RUN" "$B/admin/event-form.jsp")" "$B/admin/events.jsp?show=all"
+check "no event created without a token" "$(sql "SELECT COUNT(*) FROM events WHERE title='NoToken$RUN'")" 0
+for n in 1 2; do
+  token A admin/event-form.jsp
+  post A admin/event-form.jsp --data-urlencode "title=Twin $RUN" --data-urlencode "location=Test Hall" --data-urlencode "startsAt=$(future 15 09:00)" --data-urlencode "endsAt=$(future 15 11:00)" >/dev/null
+done
+check "two separate forms with the same details create two events" "$(sql "SELECT COUNT(*) FROM events WHERE title='Twin $RUN'")" 2
+token A admin/volunteer-new.jsp
+has "create account form carries a one-time token" "$W/body" 'name="formToken"'
+F=$(cat $W/A.form)
+acct() { loc A --data-urlencode "csrf=$(cat $W/A.tok)" --data-urlencode "formToken=$F" --data-urlencode "username=dbl_$RUN" \
+         --data-urlencode "fullName=Double Click" --data-urlencode "contactNumber=91234567" --data-urlencode "email=dbl$RUN@example.test" "$B/admin/volunteer-new.jsp"; }
+acct >/dev/null
+check "second click on create account goes to the password page" "$(acct)" "$B/admin/volunteer-new.jsp?created"
+get A 'admin/volunteer-new.jsp?created' >/dev/null
+has "temporary password still shown after a double click" "$W/body" 'class="secret"'
+check "double click creates one account" "$(sql "SELECT COUNT(*) FROM accounts WHERE username='dbl_$RUN'")" 1
 
 echo "== Pages render"
 for p in admin/ "admin/events.jsp?show=past" "admin/events.jsp?show=cancelled" "admin/volunteers.jsp?show=all" "admin/volunteer.jsp?id=$VID" "admin/event.jsp?id=$PAST_EV" "admin/event.jsp?id=$CANCELLED_EV"; do

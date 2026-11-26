@@ -229,6 +229,7 @@ an inline SVG.
 | Passwords | PBKDF2-SHA256 with a random 16-byte salt and 600,000 iterations; constant-time comparison; the same work is done for unknown usernames. Admin-created accounts get a random 12-character temporary password, shown once, never stored in clear, and must be changed at first sign-in. |
 | Access control | `AccessFilter` re-checks the account on every request (so deactivation takes effect immediately), enforces the role per path, and blocks temporary-password accounts from everything except the change-password page. Admin pages also re-check the target record (e.g. only `VOLUNTEER` accounts can be edited as participants). |
 | CSRF | A per-session token is required on every POST; logout is POST-only. |
+| Double submission | The Create event and Create account forms carry a one-time `formToken` (`Web.formToken` / `Web.useFormToken`). It is accepted once, and the check-and-remove is atomic, so a double-click or repeated submit cannot create the record twice. A repeat goes to the event list, or to the one-time password page for an account. Each new form gets a new token, so separate events with identical details are still allowed. Edits, cancels and deletes are already safe to repeat. |
 | Session | New session ID on sign-in and after a password change; `HttpOnly` and `SameSite=Lax` cookies; 20-minute timeout; cookie-only tracking. |
 | Output | All user data is HTML-escaped; a Content-Security-Policy blocks inline scripts and styles; `Cache-Control: no-store`. |
 | Errors | Database errors are logged with the SQL state only; users see a generic message with HTTP 503. |
@@ -269,17 +270,16 @@ titled "Demo Grid: …", enough to show the event grid across two pages.
 Two scripts sign in through the real login form, submit every form with its CSRF token, and check both the
 HTTP results and the database rows.
 
-**Latest results, 26 Nov 2026**, on the final code (after the shared event grid and the UI upgrade), TomEE
-10.2.0, MySQL 8.0, JDK 26:
+**Latest results, 27 Nov 2026**, on the final code (after the shared event grid, the UI upgrade and the
+double-submission fix), TomEE 10.2.0, MySQL 8.0, JDK 26:
 
 | Script | Result |
 | --- | --- |
-| `tests/admin-tests.sh` | **93 passed, 0 failed** |
+| `tests/admin-tests.sh` | **106 passed, 0 failed** |
 | `tests/volunteer-tests.sh` | **152 passed, 0 failed** |
 
-The UI upgrade changed only page markup and CSS (no Java, SQL or form field names), and both scripts were
-re-run on it to confirm nothing broke. Earlier runs: Admin 93/93 on 24 Nov 2026 (Admin phase); Admin 93/93
-and Volunteer 71/71 for Phase 3, before the Volunteer script was extended for the event grid.
+Earlier runs: Admin 93/93 on 24 Nov 2026 (Admin phase); Admin 93/93 and Volunteer 71/71 for Phase 3; Admin
+93/93 and Volunteer 152/152 on 26 Nov 2026 after the UI upgrade, which changed only page markup and CSS.
 
 `tests/admin-tests.sh` covers:
 
@@ -293,6 +293,7 @@ and Volunteer 71/71 for Phase 3, before the Volunteer script was extended for th
 | Deactivation | Confirmation page; upcoming sign-ups cancelled, past kept; open session ended; sign-in refused; cannot be added to events |
 | Event cancel | Confirmation page; event kept as cancelled; active sign-ups cancelled with history kept; later sign-ups refused; cancelling twice changes nothing |
 | Event delete | Confirmation page shows sign-up count; wrong typed title refused; correct title deletes the event and its sign-ups; page then 404 |
+| Double submission | Two simultaneous submits of one Create event form create one event; a later repeat is refused with a message; a form without a token saves nothing; two separate forms with identical details create two events; a repeated Create account submit creates one account and still shows the temporary password |
 | Rendering | Every Admin list and detail page returns 200 for upcoming, past and cancelled events |
 
 To run: start the server, then from Git Bash
@@ -311,6 +312,10 @@ The script leaves its test rows (named with a run number) in the database.
     entity.
   - UI upgrade: some draft labels differed from the app's wording that users and tests rely on (e.g.
     "sign-ups" vs "signups"); the app's wording was kept.
+  - Code review on 27 Nov 2026 found that a double-click could save a form twice. Reproduced on the earlier
+    code: one double-click on Create event made two events, and on Create account the second click showed
+    "username already in use", hiding the one-time temporary password. Fixed with a one-time form token
+    (section 5); after the fix both cases create exactly one record.
 
 ### Participant self-service tests
 
