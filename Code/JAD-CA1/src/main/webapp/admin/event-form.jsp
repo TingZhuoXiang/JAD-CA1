@@ -4,10 +4,7 @@
     Accounts.User user = (Accounts.User) request.getAttribute("currentUser");
     String navCurrent = "events";
     long id = Web.id(request, "id");
-    // ?copy=<id> opens the create form pre-filled from another event (a repeat screening).
-    long copyId = id > 0 ? -1 : Web.id(request, "copy");
     Events.Event original = null;
-    Events.Event source = null;
     String error = "";
     Map<String, String> errors = new LinkedHashMap<>();
     String title = "", location = "", description = "", startsAt = "", endsAt = "";
@@ -28,16 +25,6 @@
             description = original.description();
             startsAt = Events.input(original.startsAt());
             endsAt = Events.input(original.endsAt());
-        } else if (copyId > 0) {
-            source = Events.find(copyId);
-            if (source == null) {
-                response.sendError(404, "The event to copy does not exist.");
-                return;
-            }
-            // Copy the details but not the date: the Admin picks a new date and time.
-            title = source.title();
-            location = source.location();
-            description = source.description();
         }
         if ("POST".equals(request.getMethod())) {
             title = Web.field(request, "title").strip();
@@ -68,8 +55,7 @@
         response.setStatus(503);
         error = "Events are temporarily unavailable. Try again shortly.";
     }
-    String heading = original != null ? "Edit event" : source != null ? "Copy event" : "Create event";
-    String back = original != null ? "event.jsp?id=" + id : source != null ? "event.jsp?id=" + copyId : "events.jsp";
+    String heading = original == null ? "Create event" : "Edit event";
 %>
 <!doctype html>
 <html lang="en">
@@ -82,17 +68,13 @@
 <body>
 <main class="wide">
     <%@ include file="/WEB-INF/jspf/admin-nav.jspf" %>
-    <p><a href="<%= back %>">← Back</a></p>
+    <p><a href="<%= original == null ? "events.jsp" : "event.jsp?id=" + id %>">← Back</a></p>
     <h1><%= heading %></h1>
-    <% if (source != null) { %>
-    <p class="notice">Copied from E-<%= source.id() %> · <%= Web.html(source.title()) %>. Choose the date and time for the new event. Signups are not copied.</p>
-    <% } %>
     <p class="muted">Times are Singapore time. Volunteers can sign up until the event starts.</p>
     <% if (!error.isEmpty()) { %><p class="error" role="alert"><%= Web.html(error) %></p><% } %>
     <form method="post" action="event-form.jsp">
         <input type="hidden" name="csrf" value="<%= Web.token(request.getSession(false)) %>">
         <% if (original != null) { %><input type="hidden" name="id" value="<%= id %>"><% } %>
-        <% if (source != null) { %><input type="hidden" name="copy" value="<%= source.id() %>"><% } %>
 
         <label for="title">Title</label>
         <input id="title" name="title" maxlength="120" required value="<%= Web.html(title) %>" aria-describedby="title-error">

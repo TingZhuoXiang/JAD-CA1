@@ -30,7 +30,7 @@ Phase 1 provides Volunteer registration, login and logout. Phase 2 adds Admin ev
 
 ## Where things are
 
-- **Admin pages** (`src/main/webapp/admin/`): dashboard, events (list, create/edit/copy, details and roster with CSV download and print, cancel, delete) and volunteers (search, details/edit, deactivate, create account). The access filter allows only Admins here.
+- **Admin pages** (`src/main/webapp/admin/`): dashboard, events (list, create/edit, details and roster, cancel, delete) and volunteers (search, details/edit, deactivate, create account). The access filter allows only Admins here.
 - **Volunteer pages** (`src/main/webapp/volunteer/`): Browse and search events, view event details and sign up, review upcoming signups and history, withdraw before the event starts, edit contact details, and deactivate your account.
 - **`/account/change-password.jsp`**: any signed-in user. Accounts created by an Admin are sent here until they replace their temporary password.
 - **Java** (`src/main/java/sg/edu/sp/jad/`): `Accounts`, `Events`, `Registrations` and `Volunteers` hold the SQL. Pages use `currentUser`, `Accounts.connect()` and `Web.token(...)` in each POST form's hidden `csrf` field.
