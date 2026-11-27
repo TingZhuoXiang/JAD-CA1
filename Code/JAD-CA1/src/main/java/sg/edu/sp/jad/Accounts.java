@@ -13,7 +13,10 @@ import java.util.regex.Pattern;
 
 public final class Accounts {
     public static final int MIN_PASSWORD_LENGTH = 8;
+    public static final String REGISTRATION_PASSWORD_HINT = "Use " + MIN_PASSWORD_LENGTH
+            + " to 128 characters with at least one lowercase letter, one uppercase letter, one digit and one symbol.";
     private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_.-]{3,32}");
+    private static final Pattern PASSWORD_SYMBOL = Pattern.compile("[\\p{P}\\p{S}]");
 
     public enum Role { ADMIN, VOLUNTEER }
 
@@ -45,6 +48,19 @@ public final class Accounts {
             String email, String password, String confirmation) {
         Map<String, String> errors = validateNewAccount(username, name, phone, email);
         errors.putAll(validatePassword(password, confirmation));
+        return errors;
+    }
+
+    public static Map<String, String> validateRegistration(String username, String name, String phone,
+            String email, String password, String confirmation) {
+        Map<String, String> errors = validate(username, name, phone, email, password, confirmation);
+        if (!errors.containsKey("password")
+                && (password.codePoints().noneMatch(Character::isLowerCase)
+                        || password.codePoints().noneMatch(Character::isUpperCase)
+                        || password.codePoints().noneMatch(Character::isDigit)
+                        || !PASSWORD_SYMBOL.matcher(password).find())) {
+            errors.put("password", REGISTRATION_PASSWORD_HINT);
+        }
         return errors;
     }
 
