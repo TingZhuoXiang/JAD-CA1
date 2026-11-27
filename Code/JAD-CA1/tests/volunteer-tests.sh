@@ -13,7 +13,7 @@ PASS=0; FAIL=0
 RUN=$(date +%s)_$RANDOM
 USERNAME=vol_$RUN
 OTHER=other_$RUN
-TEST_PASSWORD=CA1-Volunteer-Test
+TEST_PASSWORD='C1a!Test'
 
 check() {
     if [ "$2" = "$3" ]; then PASS=$((PASS+1)); echo "PASS  $1"
@@ -42,10 +42,11 @@ login() {
     post "$1" login.jsp --data-urlencode "username=$2" --data-urlencode "password=$3"
 }
 register_volunteer() {
+    local password=${3:-$TEST_PASSWORD}
     token public register.jsp
     post public register.jsp --data-urlencode "username=$1" --data-urlencode "fullName=$2" \
         --data-urlencode "contactNumber=91234567" --data-urlencode "email=$1@example.test" \
-        --data-urlencode "password=$TEST_PASSWORD" --data-urlencode "confirmation=$TEST_PASSWORD"
+        --data-urlencode "password=$password" --data-urlencode "confirmation=$password"
 }
 create_event() {
     local title=$1 day=$2 start=$3 end=$4
@@ -63,6 +64,11 @@ echo "== Test setup and access"
 check "signed-out profile redirects to login" "$(request guest volunteer/profile.jsp)" 302
 check "Admin login" "$(login admin demo_admin CA1-sample-demo)" 302
 check "Admin denied access to Volunteer profile" "$(request admin volunteer/profile.jsp)" 403
+check "registration rejects seven characters" "$(register_volunteer "$USERNAME" "Phase 3 Volunteer" 'C1a!Tes')" 400
+check "registration requires lowercase" "$(register_volunteer "$USERNAME" "Phase 3 Volunteer" 'C1A!TEST')" 400
+check "registration requires uppercase" "$(register_volunteer "$USERNAME" "Phase 3 Volunteer" 'c1a!test')" 400
+check "registration requires a digit" "$(register_volunteer "$USERNAME" "Phase 3 Volunteer" 'Caa!Test')" 400
+check "registration requires a symbol" "$(register_volunteer "$USERNAME" "Phase 3 Volunteer" 'C1a Test')" 400
 check "test Volunteer registered publicly" "$(register_volunteer "$USERNAME" "Phase 3 Volunteer")" 302
 check "second Volunteer registered publicly" "$(register_volunteer "$OTHER" "Phase 3 Other")" 302
 check "Volunteer login" "$(login vol "$USERNAME" "$TEST_PASSWORD")" 302

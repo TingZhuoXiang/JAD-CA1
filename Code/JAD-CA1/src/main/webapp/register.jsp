@@ -9,7 +9,7 @@
         contactNumber = Web.field(request, "contactNumber").strip();
         email = Web.field(request, "email").strip();
         String password = Web.field(request, "password");
-        errors = Accounts.validate(username, fullName, contactNumber, email, password,
+        errors = Accounts.validateRegistration(username, fullName, contactNumber, email, password,
                 Web.field(request, "confirmation"));
         if (errors.isEmpty()) {
             try {
@@ -81,7 +81,7 @@
                            minlength="<%= Accounts.MIN_PASSWORD_LENGTH %>"
                            maxlength="128" required aria-describedby="password-hint">
                     <small id="password-hint" class="hint"><%= errors.getOrDefault("password",
-                            "Use at least " + Accounts.MIN_PASSWORD_LENGTH + " characters.") %></small>
+                            Accounts.REGISTRATION_PASSWORD_HINT) %></small>
                 </div>
                 <div class="field">
                     <label for="confirmation">Confirm password</label>
